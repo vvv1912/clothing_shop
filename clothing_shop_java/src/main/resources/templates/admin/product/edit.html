@@ -1,0 +1,374 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet"/>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.2/markdown-it.min.js"
+            integrity="sha512-ohlWmsCxOu0bph1om5eDL0jm/83eH09fvqLDhiEdiqfDeJbEvz4FSbeY0gLJSVJwQAp0laRhTXbUQG+ZUuifUQ=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+    ></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const productImage = /*[[${product.displayImage}]]*/ "";
+        /*]]>*/
+    </script>
+    <section
+            x-data="{
+        categories:[],
+         imageFile:null,
+        imagePreview:null,
+        errors:{},
+        isCreating:false,
+        resetImage(){
+            this.imagePreview = productImage;
+        }
+
+    }"
+            x-init="
+                imagePreview = productImage;
+                  $watch('imageFile', (file) => {
+                    if (!file) {
+                      imagePreview = null;
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      imagePreview = e.target.result;
+
+                    };
+                    reader.readAsDataURL(file);
+                  });
+                  "
+            class="bg-white p-6"
+    >
+        <div
+                x-show="isCreating"
+                id="back-drop"
+                class="fixed inset-0 top-0 left-0 w-screen h-screen z-50 bg-black bg-opacity-50 grid place-items-center"
+        >
+            <div role="status">
+                <svg
+                        aria-hidden="true"
+                        class="w-40 h-40 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-primary-600"
+                        viewBox="0 0 100 101"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                >
+                    <path
+                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                            fill="currentColor"
+                    />
+                    <path
+                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                            fill="currentFill"
+                    />
+                </svg>
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="flex justify-between">
+            <a
+                    th:href="@{/admin/product}"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 focus:outline-none"
+            >
+                Quay lại
+            </a>
+        </div>
+        <div class="py-8 px-4 mx-auto lg:py-8">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="mb-4 text-2xl font-bold text-gray-900" th:inline="text">Sửa sản phẩm [[${product.name}]]</h2>
+                <button
+                        x-on:click="
+                                resetImage();
+                                resetDescription();
+                                document.getElementById('updateForm').reset();
+
+                    "
+                        class="py-2.5 px-5 mr-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-full border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200"
+                >
+                    Reset
+                </button>
+            </div>
+            <div class="grid grid-cols-6 gap-x-2">
+                <div class="col-span-6 xl:col-span-2">
+                    <div class="p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 sm:p-6">
+                        <div class="flex flex-col items-center gap-y-3">
+                            <img
+                                    class="mb-4 rounded-lg w-60 aspect-[3/4] sm:mb-0 xl:mb-4 2xl:mb-0"
+                                    :src="imagePreview?imagePreview:'/images/avatar.jpg'"
+                                    alt="avatar"
+                            />
+                            <div>
+                                <h3 class="mb-1 text-center text-xl font-bold text-gray-900">Ảnh sản phẩm</h3>
+                                <div class="mb-4 text-sm text-center text-gray-500">JPG, JPEG hoặc PNG. khuyến khích tỉ
+                                    lệ 3/4
+                                </div>
+                                <input
+                                        type="file"
+                                        id="upload-avatar"
+                                        hidden
+                                        class="hidden"
+                                        accept="image/png, image/jpeg, image/jpg"
+                                        x-bind:="imageFile"
+                                        x-on:change="imageFile = $event.target.files[0]"
+                                />
+                                <div class="flex items-center justify-center space-x-4">
+                                    <label
+                                            for="upload-avatar"
+                                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300"
+                                    >
+                                        <svg
+                                                class="w-4 h-4 mr-2 -ml-1"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                    d="M5.5 13a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 13H11V9.413l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13H5.5z"
+                                            ></path>
+                                            <path d="M9 13h2v5a1 1 0 11-2 0v-5z"></path>
+                                        </svg>
+                                        Tải lên
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <form
+                        id="updateForm"
+                        class="col-span-6 xl:col-span-4 p-4 border border-gray-200 rounded-lg shadow-sm sm:p-6"
+                        x-on:submit="
+                            $event.preventDefault();
+                            if (!imageFile && !productImage) {
+                                $store.toast.add('error', 'Thất bại', 'Vui lòng chọn ảnh');
+                                return;
+                            }
+                            isCreating = true;
+                            const payload = {};
+                            payload.name = $event.target.name.value.trim()
+                            payload.forGender = $event.target.forGender.value;
+                            alert(payload.forGender);
+
+                            payload.price = parseInt($event.target.price.value);
+                            payload.categoryId = $event.target.category.value;
+                            payload.discount = $event.target.discount.value;
+                            payload.description = getDescriptionMarkdown();
+                            var imageLink = '';
+                            if (productImage === imagePreview) {
+                                imageLink = productImage;
+                            } else {
+                                const form = new FormData();
+                                form.append('file', imageFile);
+                                try {
+                                    var res = await axios.post('/api/file/upload', form, {
+                                        headers: {
+                                            'Content-Type': 'multipart/form-data'
+                                        }
+                                    });
+                                    imageLink = res.data;
+                                } catch (error) {
+                                    $store.toast.add('error', 'Thất bại', 'File ảnh không hợp lệ');
+                                    return;
+                                }
+                            }
+                            payload.displayImage = imageLink;
+                            window.apiClient.updateProduct({
+                            ...payload,
+                            productId: $event.target.productId.value
+                            }).then(res => {
+                                $store.toast.add('success', 'Thành công', 'Sản phẩm đã được cập nhật');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            }).catch(err => {
+                              errors = err.response.errors
+                                $store.toast.add('error', 'Thất bại', err.response.error);
+                            }).finally(() => {
+                                isCreating = false;
+                            })
+"
+                >
+                    <input type="hidden" name="productId" th:value="${product.productId}"/>
+                    <div class="grid gap-4 sm:grid-cols-2 sm:gap-6">
+                        <div class="sm:col-span-2">
+                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900"> Tên sản
+                                phẩm </label>
+                            <input
+                                    type="text"
+                                    name="name"
+                                    id="name"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                    placeholder="Tên sản phẩm"
+                                    required="required"
+                                    th:value="${product.name}"
+                            />
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.name"></p>
+                        </div>
+                        <div class="w-full">
+                            <label for="forGender" class="block mb-2 text-sm font-medium text-gray-900"> Chọn giới
+                                tính </label>
+                            <select
+                                    id="forGender"
+                                    name="forGender"
+                                    th:value="${product.forGender.name()}"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                            >
+                                <option value="FOR_MALE"
+                                        th:selected=${product.forGender.name()=='FOR_MALE'}
+                                >Cho nam
+                                </option>
+                                <option value="FOR_FEMALE"
+                                        th:selected=${product.forGender.name()=='FOR_FEMALE'}
+
+
+                                >
+                                    Cho nữ</option>
+                                <option
+                                        th:selected=${product.forGender.name()=='FOR_BOTH'}
+                                        value="FOR_BOTH">Cả nam và nữ</option>
+                            </select>
+                        </div>
+                        <div class="w-full">
+                            <label for="price" class="block mb-2 text-sm font-medium text-gray-900"> Giá bán </label>
+                            <input
+                                    type="number"
+                                    name="price"
+                                    id="price"
+                                    min="0"
+                                    th:value="${product.price}"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                    placeholder="200000"
+                                    required=""
+                            />
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.price"></p>
+                        </div>
+                        <div>
+                            <label for="category" class="block mb-2 text-sm font-medium text-gray-900">Danh mục</label>
+                            <select
+                                    id="category"
+                                    th:value="${product.category.categoryId}"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                            >
+                                <option selected="">Chọn danh mục</option>
+                                <th:block th:each="category : ${categories}">
+                                    <option
+                                            th:selected="${category.categoryId == product.category.categoryId}"
+                                            th:value="${category.categoryId}"
+                                            th:text="${category.categoryId+' - '+category.name}"
+                                    ></option>
+                                </th:block>
+                            </select>
+                        </div>
+                        <div class="w-full">
+                            <label for="discount" class="block mb-2 text-sm font-medium text-gray-900"> Giảm giá
+                                (%) </label>
+                            <input
+                                    th:value="${product.discount}"
+                                    type="number"
+                                    name="discount"
+                                    id="discount"
+                                    min="0"
+                                    max="100"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                    placeholder="20"
+                                    required=""
+                                    th:default="0"
+                            />
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.discount"></p>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="description"
+                                   class="block mb-2 text-sm font-medium text-gray-900">Description</label>
+
+                            <div id="description" class="min-h-[200px] prose-xl"></div>
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.description"></p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-20">
+                        <button
+                                type="submit"
+                                class="inline-flex items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-primary-700 rounded-lg focus:ring-4 focus:ring-primary-200 hover:bg-primary-800"
+                        >
+                            Lưu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/quilljs-markdown@1.2.0/dist/quilljs-markdown.min.js"></script>
+        <link
+                rel="stylesheet"
+                href="https://cdn.jsdelivr.net/npm/quilljs-markdown@1.2.0/dist/quilljs-markdown-common-style.min.css"
+        />
+        <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const description = /*[[${product.description}]]*/ "";
+            const md = markdownit();
+            const descriptionHtml = md.render(description);
+
+            const turndownService = new TurndownService();
+            const toolbarOptions = [
+                ["bold", "italic", "underline", "strike"], // toggled buttons
+                ["blockquote"],
+                [{header: 1}, {header: 2}], // custom button values
+                [{list: "ordered"}, {list: "bullet"}],
+                [{indent: "-1"}, {indent: "+1"}], // outdent/indent
+                [{size: ["small", false, "large", "huge"]}], // custom dropdown
+                ["link", "image"],
+                ["clean"],
+            ];
+
+            function imageHandler() {
+                const range = this.quill.getSelection();
+                const value = prompt("Nhập link ảnh");
+                if (value) {
+                    this.quill.insertEmbed(range.index, "image", value, Quill.sources.USER);
+                }
+            }
+
+            const quill = new Quill("#description", {
+                modules: {
+                    toolbar: {
+                        container: toolbarOptions,
+                        handlers: {
+                            image: imageHandler,
+                        },
+                    },
+                },
+
+                theme: "snow",
+                placeholder: "Mô tả sản phẩm",
+            });
+            const quillMarkdown = new QuillMarkdown(quill, {});
+            const delta = quill.clipboard.convert(descriptionHtml);
+
+            function resetDescription() {
+                quill.setContents(delta, "silent");
+            }
+
+            resetDescription();
+
+            function getDescriptionMarkdown() {
+                return turndownService.turndown(quillMarkdown.quillJS.root.innerHTML);
+            }
+
+            /*]]>*/
+        </script>
+    </section>
+</div>
+</body>
+</html>

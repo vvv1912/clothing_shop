@@ -1,0 +1,497 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <section
+            x-data="{
+            isCreating: false,
+                items:[],
+                fetchProductsOptionId: async function (){
+                  const listPromise = this.items.map(async(i)=>{
+                   return {
+                    data: await window.apiClient.createProductOptionIfNotExist({
+                   colorName: i.color,
+                    size:   i.size.toUpperCase(),
+                    productId: i.product.productId
+                   }),
+                   quantity: i.quantity,
+                   price: i.price
+                   }
+                  });
+
+                  try {
+                    const result = await Promise.all(listPromise);
+                    return result.map(r=>({
+                    productOptionId: r.data.productOptionId,
+                    quantity: r.quantity,
+                    price: r.price
+                    }))
+                  } catch (error) {
+                    $store.toast.add('error', 'Đã xảy ra lỗi','');
+                    return null;
+                  }
+                },
+                create:async function(){
+                    const supplierId = document.getElementById('supplierId').value;
+                    if(supplierId == ''){
+                        $store.toast.add('error', 'Vui lòng chọn nhà cung cấp','');
+                        return;
+                    }
+                    if(this.items.length == 0){
+                        $store.toast.add('error', 'Vui lòng thêm sản phẩm','');
+                        return;
+                    }
+                    const note = document.getElementById('note').value||null;
+                    const productOptionIds = await this.fetchProductsOptionId();
+                    if(!productOptionIds){
+                        return;
+                    }
+                    console.log(productOptionIds);
+                    try {
+                        const result = await window.apiClient.createStockReceipt({
+
+                            stockReceiptItems: productOptionIds,
+                            note: note,
+                            supplierId: supplierId
+                        });
+                        $store.toast.add('success', 'Tạo phiếu nhập thành công','');
+                        window.location.href = '/admin/stock-receipt';
+                    } catch (error) {
+                        $store.toast.add('error', 'Đã xảy ra lỗi',error.response.data.message);
+                    }
+
+
+                }
+            }"
+
+            @add-item.window="
+                items.push($event.detail);
+            "
+            class="bg-gray-50 p-3 sm:p-5 antialiased">
+        <div class="mx-auto max-w-screen-2xl px-4 lg:px-12">
+            <h2 class="text-2xl mb-3 font-bold text-gray-900 dark:text-white">
+                Tạo phiếu nhập mới
+            </h2>
+            <div class="bg-white p-4 relative shadow-md sm:rounded-lg overflow-hidden">
+                <div class="flex flex-col gap-y-2">
+
+                    <label for="supplierId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Chọn nhà cung cấp
+                    </label>
+                    <select id="supplierId"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                        <th:block th:each="s : ${suppliers}">
+                            <option th:text="${s.name}" th:value="${s.supplierId}"></option>
+                        </th:block>
+                    </select>
+                    <label for="note" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Ghi chú
+                    </label>
+                    <textarea id="note" rows="2"
+                              class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                              placeholder="Ghi chú"></textarea>
+                    <!--                    <div class="flex justify-end">-->
+                    <!--                        <button type="submit"-->
+                    <!--                                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">-->
+                    <!--                            Tạo phiếu nhập-->
+                    <!--                        </button>-->
+                    <!--                    </div>-->
+                </div>
+            </div>
+            <div class="bg-white p-4 relative shadow-md sm:rounded-lg mt-8 overflow-hidden flex flex-col gap-y-2">
+                <h3 class="text-xl mb-3 font-bold text-gray-900 dark:text-white">
+                    Danh sách sản phẩm
+                </h3>
+
+
+                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+
+                            <th scope="col" class="px-6 py-3">
+                                Sản phẩm
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Màu sắc
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Size
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Giá nhập
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Số lượng nhập
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Thành tiền
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <template x-for="(item,index) in items" :key="index">
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <th scope="row"
+                                    class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+
+                                >
+                                    <div class="flex gap-x-3 items-center   ">
+                                        <img :src="item.product.displayImage"
+                                             class="w-20 aspect-[3/4]  object-cover" alt="">
+                                        <span x-text="item.product.name"></span>
+                                    </div>
+                                </th>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.color">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.size">
+                                </td>
+                                <td class="px-6  text-black font-semibold py-4" x-text="VND.format(item.price)">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.quantity">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4"
+                                    x-text="VND.format(item.price*item.quantity)">
+                                </td>
+                                <td class="px-6  py-4 text-right">
+                                    <button
+                                            x-on:click="items.splice(index,1)"
+                                            class="font-medium text-primary-600 dark:text-red-500 hover:underline">
+                                        Xoá
+                                    </button>
+                                </td>
+                            </tr>
+
+                        </template>
+                        <!--                        calculate total-->
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <td colspan="5"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                Tổng tiền
+                            </td>
+                            <td colspan="2"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                <span x-text="VND.format(items.reduce((a,b)=>a+b.price*b.quantity,0))"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pt-4">
+                    <button
+                            @click="toggleAddItemModal()"
+                            type="button"
+                            class="flex justify-center items-center gap-x-2  bg-transparent hover:bg-gray-50 hover:shadow  font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2  focus:outline-none ">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                             stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+
+                        <span>
+                            Thêm sản phẩm
+                        </span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="pt-4 flex justify-end">
+            <button
+                    @click="create()"
+                    type="button"
+                    :disabled="items.length == 0||isCreating"
+                    :class="{'cursor-not-allowed opacity-50':items.length == 0||isCreating}"
+                    class="text-white  bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                Tạo phiếu nhập
+            </button>
+        </div>
+
+        <div
+                id="add-item-modal"
+                tabindex="-1"
+                aria-hidden="true"
+                x-data="{errors:{}}"
+                class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] md:h-full"
+        >
+            <div class="relative p-4 w-full max-w-3xl h-full md:h-auto">
+                <!-- Modal content -->
+                <div class="relative p-4 bg-white rounded-lg shadow sm:p-5">
+                    <!-- Modal header -->
+                    <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5">
+                        <h3 class="text-lg font-semibold text-gray-900">Thêm sản phẩm</h3>
+                        <button
+                                type="button"
+                                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                                @click="toggleAddItemModal()"
+                        >
+                            <svg
+                                    aria-hidden="true"
+                                    class="w-5 h-5"
+                                    fill="currentColor"
+                                    viewbox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"
+                                />
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+
+                    <form
+                            x-data="{
+                                itemErrors:{},
+                                searchedProducts:[],
+                                selectedProductId:0,
+                                selectedProduct:{},
+                                searchProduct: function(keyword){
+
+                                    window.apiClient.getProducts(undefined,undefined,undefined,undefined,false,1,10,'name','asc',keyword)
+                                        .then(response => {
+                                            this.searchedProducts = response.data;
+                                            showDropdown();
+                                        })
+                                        .catch(error => {
+                                            console.log(error);
+                                        });
+                                },
+                                isHasError: function(){
+                                    let isHasError = false;
+                                    for (const [key, value] of Object.entries(this.itemErrors)) {
+                                        if(value !== ''){
+                                            isHasError = true;
+                                            break;
+                                        }
+                                    }
+                                    return isHasError;
+                                }
+                            }"
+
+                            x-on:submit.prevent="
+                            if(selectedProductId === 0){
+                                itemErrors.product = 'Vui lòng chọn sản phẩm';
+                                return;
+                            }
+                            if(isHasError()){
+                                return;
+                                }
+                             $dispatch('add-item', {
+                                product: selectedProduct,
+                                size: $event.target.size.value,
+                                color: $event.target.color.value,
+                                price: $event.target.price.value,
+                                quantity: $event.target.quantity.value,
+                                });
+                                $event.target.reset();
+                                selectedProductId = 0;
+                                $event.target.productName.value = '';
+                                selectedProduct = {};
+                                itemErrors = {};
+                                toggleAddItemModal();
+                             "
+
+
+                    >
+                        <div class="gap-4 mb-4 flex flex-col">
+                            <div>
+                                <label for="productName" class="block mb-2 text-sm font-medium text-gray-900">
+                                    Sản phẩm
+                                </label>
+                                <input
+                                        type="text"
+                                        name="productName"
+                                        id="productName"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Tìm theo tên sản phẩm"
+                                        @input.debounce.1000ms="searchProduct($event.target.value)"
+                                        required=""
+                                />
+                                <p id="lb" class="mt-2 text-sm text-red-600" x-text="itemErrors.product"></p>
+                                <div
+                                        id="dropdownColorSelect"
+                                        class="z-10 w-11/12 mx-auto -mt-2 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-xl border-gray-100 border dark:bg-gray-700"
+                                >
+                                    <ul
+                                            class="py-2 max-h-64 overflow-y-scroll text-sm text-gray-700 dark:text-gray-200"
+                                            aria-labelledby="color"
+                                    >
+                                        <template x-for="c in searchedProducts" :key="c.productId">
+                                            <li>
+                                                <a
+                                                        class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                                                        x-text="c.name"
+                                                        x-on:click="selectedProductId = c.productId; hideDropdown(); document.getElementById('productName').value = c.name; selectedProduct = c; itemErrors.product = ''"
+                                                >
+                                                </a>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-x-4">
+                                <div>
+                                    <label for="size" class="block mb-2 text-sm font-medium text-gray-900">
+                                        Kích cỡ
+                                    </label>
+                                    <input
+                                            type="text"
+                                            name="size"
+                                            id="size"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                            placeholder="Nhập kích cỡ"
+                                            required=""
+                                    />
+                                    <p class="mt-2 text-sm text-red-600" x-text="errors.size"></p>
+                                </div>
+                                <div>
+                                    <label for="color" class="block mb-2 text-sm font-medium text-gray-900">
+                                        Màu sắc
+                                    </label>
+                                    <input
+                                            type="text"
+                                            name="color"
+                                            id="color"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                            placeholder="Nhập màu sắc"
+                                            required=""
+                                    />
+                                    <p class="mt-2 text-sm text-red-600" x-text="itemErrors.color"></p>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="price" class="block mb-2 text-sm font-medium text-gray-900">
+                                    Giá nhập
+                                </label>
+                                <input
+                                        type="number"
+                                        name="price"
+                                        id="price"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập giá nhập"
+                                        required=""
+                                        @input="
+                                            if((selectedProduct.price||10000000 )< Number($event.target.value||0)){
+                                            itemErrors.price = 'Giá nhập không được lớn hơn giá bán lẻ ('+selectedProduct.price+'đ)';
+                                            return;
+                                            }
+                                            if( Number($event.target.value) < 0){
+                                            itemErrors.price = 'Giá nhập không được nhỏ hơn 0';
+                                            return;
+                                            }
+                                            itemErrors.price = '';
+                                        "
+
+
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="itemErrors.price"></p>
+                            </div>
+                            <div>
+                                <label for="quantity" class="block mb-2 text-sm font-medium text-gray-900">
+                                    Số lượng nhập
+                                </label>
+                                <input
+                                        type="number"
+                                        name="quantity"
+                                        id="quantity"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập số lượng nhập"
+                                        required=""
+                                        @input="
+
+                                            if( Number($event.target.value) < 0){
+                                            itemErrors.quantity = 'Số lượng nhập không được nhỏ hơn 0';
+                                            return;
+                                            }
+                                            itemErrors.quantity = '';
+                                        "
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="itemErrors.quantity">
+
+                                </p>
+                            </div>
+                            <div class="items-center justify-end space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
+                                <button
+                                        type="submit"
+                                        :class="{'cursor-not-allowed opacity-50':isHasError()}"
+                                        class="w-full sm:w-auto justify-center text-white inline-flex bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                                >
+                                    Thêm sản phẩm
+                                </button>
+
+                                <button
+
+                                        type="reset"
+                                        id="cancelCreateButton"
+                                        @click="toggleAddItemModal()"
+                                        class="w-full justify-center sm:w-auto text-gray-500 inline-flex items-center bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
+                                >
+                                    <svg
+                                            class="mr-1 -ml-1 w-5 h-5"
+                                            fill="currentColor"
+                                            viewbox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                                fill-rule="evenodd"
+                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            const $targetDropdownEl = document.getElementById('dropdownColorSelect');
+            const $triggerEl = document.getElementById('lb');
+            const options = {
+                placement: 'bottom',
+                triggerType: '',
+                offsetSkidding: 0,
+                offsetDistance: 10,
+                delay: 300,
+                ignoreClickOutsideClass: true,
+            };
+            const dropdown = new Dropdown($targetDropdownEl, $triggerEl, options);
+
+            showDropdown = () => {
+                dropdown.show()
+            }
+            hideDropdown = () => {
+                dropdown.hide()
+            }
+        </script>
+        <script>
+            const addItemModalEl = document.getElementById("add-item-modal");
+            const addItemModal = new Modal(addItemModalEl);
+
+            function toggleAddItemModal() {
+                addItemModal.toggle();
+            }
+        </script>
+    </section>
+
+</div>
+
+</body>
+</html>

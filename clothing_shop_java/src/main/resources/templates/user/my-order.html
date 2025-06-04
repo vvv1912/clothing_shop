@@ -1,0 +1,435 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        layout:decorate="layout"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Giỏ hàng của bạn</title>
+</head>
+
+<body>
+<div layout:fragment="content" class="max-w-screen-xl mx-auto"
+     x-data="{
+      selectedOrderId: null,
+      selectedOrderProductId: null,
+      isLoadingRate: false,
+      selectedOrderProductDisplayName: null,
+     isNewRating: false,
+     rate:{
+        value: '',
+        rateContent: '',
+        id: null
+     },
+     errors:{},
+     createOrUpdate: async function(){
+    try {
+      if(this.isNewRating){
+          await window.apiClient.createRating({
+            orderId: this.selectedOrderId,
+            productOptionId: this.selectedOrderProductId,
+            value: this.rate.value,
+            content: this.rate.rateContent
+          });
+        }else{
+          await window.apiClient.updateRating({
+            id: this.rate.id,
+            value: this.rate.value,
+            content: this.rate.rateContent
+          });
+        }
+        $store.toast.add('success', 'Thành công', 'Đánh giá của bạn đã được lưu');
+    } catch (err) {
+    console.log({err});
+      $store.toast.add('error', 'Thất bại',err.response.error);
+      errors = err.response.errors;
+      }}
+    }"
+    x-init="
+    isNewRating = true;
+    $watch('selectedOrderProductId', (value) => {
+      window.apiClient.getMyRatingOfProduct(selectedOrderId,selectedOrderProductId)
+      .then(res=>{
+        isNewRating = false;
+          rate.value = res.value;
+          rate.rateContent = res.content;
+          rate.id = res.id;
+
+      })
+      .catch(err=>{
+        isNewRating = true;
+          rate.value = '';
+          rate.rateContent = '';
+          rate.id = '';
+        console.log({err});
+      })
+      .finally(()=>{
+        isLoadingRate = false;
+      })
+    });
+"
+>
+    <div id="cancel-order-modal" tabindex="-1"
+         class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                <button type="button"
+                        class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-hide="cancel-order-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+                <div class="p-4 md:p-5 text-center">
+                    <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true"
+                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                    </svg>
+                    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+                        Bạn có chắc chắn muốn huỷ đơn hàng #<span class="font-semibold text-black"
+                                                                  x-text="selectedOrderId"
+
+                    ></span>
+                    </h3>
+
+                    <div class="my-2">
+                        <label for="cancel-reason"
+                               class="block mb-2 text-start text-sm font-medium text-gray-900 dark:text-white">Lý
+                            do</label>
+                        <textarea id="cancel-reason" rows="4"
+                                  class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 "
+                                  placeholder="Hãy cho chúng tôi biết lý do để chúng tôi có thể cải thiện dịch vụ">
+              </textarea>
+
+                    </div>
+
+                    <button
+                            @click="
+                        window.apiClient.cancelOrder({
+                        orderId:selectedOrderId,
+                        reason: document.getElementById('cancel-reason').value || undefined
+                        }).then((res) => {
+                          $store.toast.add('success', 'Thành công', 'Đơn hàng đã được huỷ thành công');
+                          setTimeout(() => {
+                            window.location.reload();
+                          }, 4000);
+                        }).catch((err) => {
+                          $store.toast.add('error', 'Thất bại', 'Đơn hàng chưa được huỷ');
+                        });
+                      "
+
+                            data-modal-hide="cancel-order-modal" type="button"
+                            class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                        Vâng, tôi chắc chắn
+                    </button>
+                    <button data-modal-hide="cancel-order-modal" type="button"
+                            class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                        Không
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 px-4 pt-6 xl:grid-cols-3 xl:gap-4">
+        <div class="mb-4 col-span-full xl:mb-2">
+            <nav class="flex mb-5" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
+                    <li class="inline-flex items-center">
+                        <a th:href="@{/home}" class="inline-flex items-center text-gray-700 hover:text-primary-600">
+                            <svg
+                                    class="w-5 h-5 mr-2.5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
+                                ></path>
+                            </svg>
+                            Trang chủ
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg
+                                    class="w-6 h-6 text-gray-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd"
+                                ></path>
+                            </svg>
+                            <a href="#" class="ml-1 text-gray-700 hover:text-primary-600 md:ml-2"> Đơn hàng của tôi </a>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+            <!-- order wrapper -->
+            <!-- header -->
+            <h1 class="text-3xl font-extrabold mt-4">Lịch sử đơn hàng</h1>
+            <p class="text-base text-black text-opacity-60 leading-normal mt-1 mb-4">
+                Kiểm tra trạng thái đơn hàng gần đây, quản lý đơn hàng trả lại và tải xuống hóa đơn.
+            </p>
+            <!-- date, odersnumber, total amount HEADER-->
+            <div class="flex flex-col gap-y-8">
+                <th:block th:each="order : ${orders} ">
+                    <div class="flex flex-col gap-y-2 shadow-md">
+                        <div class="w-full bg-gray-100 flex justify-between p-4 items-center rounded-md">
+                            <div class="ml-6">
+                                <ul class="w-full list-none flex gap-x-4 items-start">
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Ngày đặt hàng</div>
+                                        <div class="">
+                                            <span class="text-sm"
+                                                  th:text="${@clientUtil.formatDateTime(order.getCreatedDate())}"> </span>
+                                        </div>
+                                    </li>
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Mã đơn hàng</div>
+                                        <div class="font-normal flex">
+                                            <span class="text-sm whitespace-pre-wrap max-w-[200px]"
+                                                  th:text="${order.orderId}"> </span>
+                                        </div>
+                                    </li>
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Tổng tiền</div>
+                                        <div
+                                                class="font-extrabold text-base"
+                                                th:text="${@clientUtil.toVietnameseCurrency(order.getTotalAmount())}"
+                                        ></div>
+                                    </li>
+
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Trạng thái đơn hàng</div>
+                                        <div class="w-full flex justify-center items-center">
+                                            <th:block
+                                                    th:replace="~{components/StatusBadge :: orderStatusBadge(${order.getStatus().name()})}"
+                                            ></th:block>
+                                        </div>
+                                    </li>
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Phương thức thanh toán</div>
+                                        <div
+                                                class="w-full font-normal flex justify-center items-center"
+                                                th:text="${@clientUtil.toReadableString(order.getPaymentMethod())}"
+                                        ></div>
+                                    </li>
+                                    <li class="text-base font-extrabold">
+                                        <div class="mb-2">Trạng thái thanh toán</div>
+                                        <div class="w-full flex justify-center items-center">
+                                            <th:block th:if="${order.getLatestPayment() != null}">
+                                                <th:block
+
+                                                        th:replace="~{components/StatusBadge :: paymentStatusBadge(${order.getLatestPayment().getStatus().name()})}"
+                                                ></th:block>
+                                            </th:block>
+
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="w-139 h-full mr-6 flex justify-center items-center">
+                                <a
+                                        th:if="${order.getStatus().name().equalsIgnoreCase('DELIVERED')}"
+                                        th:href="@{/invoice/{orderId}/download(orderId=${order.orderId})}"
+                                        class="bg-white px-4 py-1 rounded-md font-extrabold border-2"
+                                >
+                                    Tải hóa đơn
+                                </a>
+                                <div>
+                                    <button
+                                            th:if="${order.getStatus().name().equalsIgnoreCase('PROCESSING')} or ${order.getStatus().name().equalsIgnoreCase('PENDING')}"
+                                            type="button"
+                                            data-modal-target="cancel-order-modal" data-modal-toggle="cancel-order-modal"
+                                            class="bg-white px-4 py-1 rounded-md font-extrabold border-2"
+                                            th:attr="data-order-id=${order.orderId}"
+                                            @click="selectedOrderId =$el.getAttribute('data-order-id')"
+                                    >
+                                        Huỷ đơn hàng
+                                    </button>
+                                    <button
+                                            th:if="${order.getLatestPayment().getStatus().name().equalsIgnoreCase('FAILED')} "
+                                            type="button"
+
+                                            class="bg-green-500 text-white hover:bg-green-700 px-4 py-1 rounded-md font-extrabold border-2"
+                                            th:attr="data-order-id=${order.orderId}"
+                                            @click="
+                                                const orderId =$el.getAttribute('data-order-id')
+                                                 window.apiClient.createPayment({
+                                                 orderId: orderId,
+                                                 }).then((res) => {
+                                                  window.location.href = res.redirectUrl;
+                                                 }).catch((err) => {
+                                                  $store.toast.add('error', 'Thất bại', err.response.error);
+                                                 });
+                                            "
+                                    >
+                                        Thanh toán lại
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- order details -->
+
+                        <div class="p-3 rounded-md">
+                            <table class="w-full">
+                                <thead class="min-w-full h-10 divide-y divide-gray-200 border-b-2 border-opacity-10 py-10">
+                                <tr class="">
+                                    <th class="text-lg text-black text-opacity-60 text-left h-full">Sản phẩm</th>
+                                    <th class="text-lg text-black text-opacity-60 text-left">Giá</th>
+                                    <th class="text-lg text-black text-opacity-60 text-left">Số lượng</th>
+                                    <th class="text-lg text-black text-opacity-60 text-right">
+                                        Hành động
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="w-full">
+                                <th:block th:each="item : ${order.getOrderItems()}">
+                                    <tr class="w-full h-40 border-b-2 border-opacity-10">
+                                        <td class="py-2 h-full flex items-center gap-x-2">
+                                            <img
+                                                    class="w-100 items-center h-full"
+                                                    th:src="${item.getProductOption().getProduct().getDisplayImage()}"
+                                                    alt=""
+                                            />
+                                            <div class="flex flex-col grow">
+                                                <a
+                                                        th:href="@{/product/{productId}(productId=${item.getProductOption().getProduct().getProductId()})}"
+                                                        class="font-extrabold text-xl hover:text-blue-700 hover:underline"
+                                                        th:text="${item.getProductOption().getProduct().getName()}"
+                                                ></a>
+                                                <div>
+                                                    <span class="font-semibold text-sm"> Màu sắc: </span>
+                                                    <span class="text-sm"
+                                                          th:text="${item.getProductOption().getColor().getName()}"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="font-semibold text-sm"> Kích cỡ: </span>
+                                                    <span class="text-sm"
+                                                          th:text="${item.getProductOption().getSize()}"></span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                            <span
+                                    class="flex font-semibold text-lg"
+                                    th:text="${@clientUtil.toVietnameseCurrency(item.getProductOption().getProduct().getFinalPrice())}"
+                            ></span>
+                                        </td>
+
+                                        <td>
+                                            <span class="flex font-semibold text-lg"
+                                                  th:text="${item.getQuantity()}"> </span>
+                                        </td>
+                                        <td class="text-right">
+
+                                            <button
+                                                    th:attr="data-order-product-id=${item.getProductOptionId()}, data-order-id=${order.orderId}, data-product-name=${item.getProductOption().getProduct().getName() + ' (' + item.getProductOption().getColor().getName() + ', ' + item.getProductOption().getSize() + ')'}"
+                                                    @click="selectedOrderId =$el.getAttribute('data-order-id'); selectedOrderProductId =$el.getAttribute('data-order-product-id'); selectedOrderProductDisplayName =$el.getAttribute('data-product-name')"
+                                                    data-modal-target="rate-modal" data-modal-toggle="rate-modal"
+                                                    th:if="${order.getStatus().name().equalsIgnoreCase('DELIVERED')}"
+                                                    type="button"
+                                                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-blue-800">
+                                                Đánh giá
+                                            </button>
+                                            <!-- Main modal -->
+
+                                        </td>
+                                    </tr>
+                                </th:block>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </th:block>
+            </div>
+        </div>
+    </div>
+    <div id="rate-modal" tabindex="-1" aria-hidden="true"
+         class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <!-- Modal content -->
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Đánh giá sản phẩm <span class="font-bold" x-text="selectedOrderProductDisplayName">
+
+                    </span>
+                    </h3>
+                    <button type="button"
+                            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                            data-modal-toggle="rate-modal">
+                        <svg class="w-3 h-3" aria-hidden="true"
+                             xmlns="http://www.w3.org/2000/svg" fill="none"
+                             viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round"
+                                  stroke-linejoin="round" stroke-width="2"
+                                  d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <!-- Modal body -->
+                <form class="p-4 md:p-5">
+                    <div class="grid gap-4 mb-4 grid-cols-2">
+
+                        <div class="col-span-2 sm:col-span-1">
+                            <label for="rate-value"
+                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Số sao
+                            </label>
+                            <select id="rate-value"
+                                    x-model="rate.value"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                <option selected="" disabled="">Chọn số sao
+                                </option>
+                                <option value="1">1 sao</option>
+                                <option value="2">2 sao</option>
+                                <option value="3">3 sao</option>
+                                <option value="4">4 sao</option>
+                                <option value="5">5 sao</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label for="rate-content"
+                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Nội dung đánh giá
+                            </label>
+                            <textarea id="rate-content" rows="4"
+                                        x-model="rate.rateContent"
+                                      class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-blue-500"
+                                      placeholder="Hãy cho chúng tôi biết trãi nghiệm của bạn với sản phẩm"></textarea>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @click="createOrUpdate()"
+                            class="text-white inline-flex items-center bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <svg class="me-1 -ms-1 w-5 h-5" fill="currentColor"
+                             viewBox="0 0 20 20"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd"
+                                  d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                                  clip-rule="evenodd"></path>
+                        </svg>
+                        Lưu đánh giá
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+  

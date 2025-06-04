@@ -1,0 +1,17 @@
+{
+  "shopName": "Shop quần áo",
+  "shopPhone": "0385562848",
+  "shopEmail": "huuhoag1412gmail.com",
+  "shopCity": "Hồ Chí Minh",
+  "shopWard": "Phường 04",
+  "shopDistrict": "Quận 5",
+  "shopStreet": "An Dương Vương",
+  "shopOwner": "Nhóm 5",
+  "shopLogo": "",
+  "sliderBanner": [
+    {
+      "image": "",
+      "href": ""
+    }
+  ]
+}

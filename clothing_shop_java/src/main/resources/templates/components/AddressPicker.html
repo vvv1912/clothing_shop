@@ -1,0 +1,82 @@
+<div th:fragment="addressPicker()" class="col-span-6">
+  <div
+    class="w-full grid grid-cols-4 gap-x-1"
+    x-init="fetchProvince().then(p => {
+                                            provinces = p;
+                                     });
+                                    $watch('selectedProvince', (provinceCode) => {
+                                        if (provinceCode) {
+                                            fetchDistrict(provinceCode).then(d => {
+                                                districts = d;
+                                            selecteDistrict = '';
+
+                                            });
+                                        }else{
+                                            districts = [];
+                                            selectedDistrict = '';
+                                        }
+                                    });
+                                    $watch('selectedDistrict', (districtCode) => {
+                                        if (districtCode) {
+                                            fetchWard(districtCode).then(w => {
+                                                wards = w;
+                                            });
+                                        }else{
+                                            wards = [];
+                                            selectedWard = '';
+                                        }
+                                    });
+                            "
+  >
+    <div>
+      <label for="province" class="block mb-2 text-sm font-medium text-gray-900">Tỉnh/Thành phố</label>
+      <select
+        id="province"
+        x-model="selectedProvince"
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+      >
+        <option selected value="">Chọn tỉnh/thành phố</option>
+        <template x-for="province in provinces" :key="province.code">
+          <option x-text="province.name_with_type" :value="province.code"></option>
+        </template>
+      </select>
+    </div>
+    <div>
+      <label for="district" class="block mb-2 text-sm font-medium text-gray-900">Quận/Huyện</label>
+      <select
+        id="district"
+        x-model="selectedDistrict"
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+      >
+        <option selected value="">Chọn quận/huyện</option>
+        <template x-for="province in districts" :key="province.code">
+          <option x-text="province.name_with_type" :value="province.code"></option>
+        </template>
+      </select>
+    </div>
+    <div>
+      <label for="ward" x-model="selectedWard" class="block mb-2 text-sm font-medium text-gray-900">Phường/Xã</label>
+      <select
+        id="ward"
+        x-model="selectedWard"
+        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+      >
+        <option selected value="">Chọn phường/xã</option>
+        <template x-for="ward in wards" :key="ward.code">
+          <option x-text="ward.name_with_type" :value="ward.code"></option>
+        </template>
+      </select>
+    </div>
+    <div>
+      <label for="detailAddress" class="block mb-2 text-sm font-medium text-gray-900">Chi tiết</label>
+      <input
+        type="text"
+        id="detailAddress"
+        class="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+        placeholder="273 Đường A"
+        name="detailAddress"
+        x-model="detailAddress"
+      />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,264 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        layout:decorate="layout"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Giỏ hàng của bạn</title>
+</head>
+
+<body>
+<div layout:fragment="content" class="max-w-screen-xl mx-auto">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const cartitems = /*[[${cartItems}]]*/ [];
+        /*]]>*/
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("cartItems", () => ({
+                cartItems: cartitems,
+                isUpdating: false,
+                totalAmount: function () {
+                    let total = 0;
+                    this.cartItems.forEach((item) => {
+                        total += item.quantity * item.productOption.product.price;
+                    });
+                    return total;
+                },
+                reduceAmount: function () {
+                    let reduce = 0;
+                    this.cartItems.forEach((item) => {
+                        reduce +=
+                            item.quantity * (item.productOption.product.price * (item.productOption.product.discount / 100));
+                    });
+                    return reduce;
+                },
+                finalAmount: function () {
+                    return this.totalAmount() - this.reduceAmount();
+                },
+                onDelete: async function (id) {
+                    try {
+                        const result = await window.apiClient.removeItemFromCart(id);
+                        this.cartItems = this.cartItems.filter((item) => item.productOptionId !== id);
+                        Alpine.store('toast').add('success', 'Thành công', 'Xóa sản phẩm khỏi giỏ hàng thành công');
+
+                    } catch (e) {
+                        Alpine.store('toast').add('error', 'Thất bại', e.response.error);
+                    }
+                },
+                onChangeQuantity: async function (id, quantity) {
+                    try {
+                        this.isUpdating = true;
+                        const result = await window.apiClient.updateCartItemQuantity(
+                            {
+                                productOptionId: id,
+                                newQuantity: quantity,
+                            }
+                        );
+
+                        this.cartItems = this.cartItems.map((item) => {
+                            if (item.productOptionId === id) {
+                                item.quantity = quantity;
+                            }
+                            return item;
+                        });
+                    } catch (e) {
+                        console.log(e);
+                        Alpine.store('toast').add('error', 'Thất bại', e.response.error);
+                    }
+                    this.isUpdating = false;
+                },
+            }));
+        });
+    </script>
+    <div class="grid grid-cols-1 px-4 pt-6 xl:grid-cols-3 xl:gap-4">
+        <div class="mb-4 col-span-full xl:mb-2">
+            <nav class="flex mb-5" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
+                    <li class="inline-flex items-center">
+                        <a th:href="@{/home}" class="inline-flex items-center text-gray-700 hover:text-primary-600">
+                            <svg
+                                    class="w-5 h-5 mr-2.5"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
+                                ></path>
+                            </svg>
+                            Trang chủ
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg
+                                    class="w-6 h-6 text-gray-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        fill-rule="evenodd"
+                                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                        clip-rule="evenodd"
+                                ></path>
+                            </svg>
+                            <a href="#" class="ml-1 text-gray-700 hover:text-primary-600 md:ml-2"> Giỏ hàng </a>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl">Giỏ hàng của bạn</h1>
+            <div class="grid-cols-1 grid lg:grid-cols-6 gap-8" x-data="cartItems">
+                <div class="lg:col-span-4 col-span-1 flex flex-col gap-y-1 mt-5 p-2 border shadow-md rounded-md">
+                    <div class="grid place-items-center h-full grow text-lg font-semibold"
+                         x-show="cartItems.length ===0">
+                        <span>Giỏ hàng trống</span>
+                    </div>
+                    <template x-for="item in cartItems">
+                        <div class="flex flex-row gap-x-4 p-4 border-b">
+                            <img
+                                    class="w-24 aspect-[3/4] object-cover rounded-md"
+                                    :src="item.productOption.product.displayImage"
+                                    alt=""
+                            />
+                            <div class="flex flex-col gap-y-1 grow">
+                                <div class="flex justify-between">
+                                    <h3 class="text-xl font-bold">
+                                        <span x-text="item.productOption.product.name"></span>
+                                    </h3>
+                                    <button
+                                            type="button"
+                                            @click="onDelete(item.productOptionId)"
+                                            class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full p-1"
+                                    >
+                                        <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="icon icon-tabler icon-tabler-trash"
+                                                width="25"
+                                                height="25"
+                                                viewBox="0 0 24 24"
+                                                stroke-width="1.5"
+                                                stroke="currentColor"
+                                                fill="none"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                        >
+                                            <path stroke="none" d="M0 0h24v24H0z"/>
+                                            <path d="M4 7l16 0"/>
+                                            <path d="M10 11l0 6"/>
+                                            <path d="M14 11l0 6"/>
+                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Màu sắc: </span>
+                                    <span x-text="item.productOption.color.name"></span>
+                                </div>
+                                <div>
+                                    <span class="font-semibold">Kích cỡ: </span>
+                                    <span x-text="item.productOption.size"></span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex text-lg gap-4 items-center">
+                                        <div class="flex gap-1 items-center">
+                                            <div
+                                                    class="font-bold"
+                                                    x-text="VND.format(item.productOption.product.price)"
+                                                    :class="{'line-through text-gray-500 text-sm': item.productOption.product.discount > 0}"
+                                            ></div>
+
+                                            <div
+                                                    class="font-bold"
+                                                    x-text="VND.format(item.productOption.product.price *(1-item.productOption.product.discount/100) )"
+                                                    x-show="item.productOption.product.discount > 0"
+                                            ></div>
+                                        </div>
+                                        <span
+                                                class="bg-red-100 text-red-800 mr-2 px-2.5 py-0.5 rounded font-bold"
+                                                th:text="'-'+${discount}+'%'"
+                                                x-text="'-'+item.productOption.product.discount+'%'"
+                                                x-show="item.productOption.product.discount > 0"
+                                        ></span>
+                                    </div>
+                                    <div class="inline-flex rounded-md shadow-sm" role="group">
+                                        <button
+                                                type="button"
+                                                :disabled="isUpdating"
+                                                @click="onChangeQuantity(item.productOptionId, item.quantity - 1)"
+                                                class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-primary-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-primary-500 dark:focus:text-white"
+                                        >
+                                            -
+                                        </button>
+                                        <input
+                                                readonly
+                                                type="number"
+                                                class="bg-white text-gray-900 text-sm border border-gray-200 focus:ring-primary-500 focus:border-blue-500 block w-[100px] p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-blue-500"
+                                                value="1"
+                                                placeholder="0"
+                                                required
+                                                x-bind:value="item.quantity"
+                                        />
+                                        <button
+                                                type="button"
+                                                :disabled="isUpdating"
+                                                @click="onChangeQuantity(item.productOptionId, item.quantity + 1)"
+                                                class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-primary-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-primary-500 dark:focus:text-white"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <div class="lg:col-span-2 col-span-1">
+                    <div class="border shadow-md flex mt-5 p-3 rounded-md flex-col gap-y-1">
+                        <h1 class="text-xl font-semibold text-gray-900 sm:text-2xl py-1 px-4">Thông tin đơn hàng</h1>
+                        <div class="flex flex-col gap-y-1 px-4 py-1 border-b pb-4">
+                            <div class="flex justify-between">
+                                <span class="font-semibold text-gray-700">Tổng giá trị </span>
+                                <span class="font-bold" x-text="VND.format(totalAmount())"> </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-semibold text-gray-700">Tiết kiệm </span>
+                                <span class="text-red-600 font-bold" x-text="VND.format(reduceAmount())"></span>
+                            </div>
+                            <div class="flex justify-between text-gray-700">
+                                <span class="font-semibold">Tổng cộng(Tạm tính) </span>
+                                <span class="font-bold" x-text="VND.format(finalAmount())"></span>
+                            </div>
+                        </div>
+                        <form class="py-3" method="post" th:action="@{/order}">
+                            <input
+                                    type="text"
+                                    name="orderItemsJson"
+                                    :value="JSON.stringify(cartItems.map(item => ({productOptionId: item.productOptionId, quantity: item.quantity})))"
+                                    hidden
+                            />
+
+                            <button
+                                    :disabled="cartItems.length === 0"
+                                    :class="{
+                                    'cursor-not-allowed': cartItems.length === 0
+                                    }"
+                                    type="submit"
+                                    class="text-white w-full bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 font-medium rounded-full text-sm px-5 py-2.5 text-center"
+                            >
+                                Tiến hành đặt hàng
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

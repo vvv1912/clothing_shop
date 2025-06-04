@@ -1,0 +1,228 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="admin/layout"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cấu hình cửa hàng</title>
+  </head>
+  <body>
+    <div layout:fragment="content" class="">
+      <script src="/js/addressUtil.js"></script>
+      <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        const shopWard = /*[[${shopSetting.getShopWard()}]]*/ "";
+        const shopDistrict = /*[[${shopSetting.getShopDistrict()}]]*/ "";
+        const shopCity = /*[[${shopSetting.getShopCity()}]]*/ "";
+        const shopStreet = /*[[${shopSetting.getShopStreet()}]]*/ "";
+        /*]]>*/
+        const fullAddress = `${shopStreet}, ${shopWard}, ${shopDistrict}, ${shopCity}`;
+      </script>
+      <div
+        class="bg-white relative shadow-md sm:rounded-lg overflow-hidden"
+        x-data="{
+    currentTab: 'info',
+    }"
+      >
+        <div
+          class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700"
+        >
+          <ul class="flex flex-wrap -mb-px">
+            <li class="mr-2">
+              <button
+                id="info"
+                :class="{
+                            'inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active': currentTab === 'info',
+                            'inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 ' : currentTab !== 'info'
+                            }"
+                @click="currentTab = 'info'"
+              >
+                Thông tin cửa hàng
+              </button>
+            </li>
+            <li class="mr-2">
+              <button
+                id="banner"
+                :class="{
+                            'inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active': currentTab === 'banner',
+                            'inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 ' : currentTab !== 'banner'
+                            }"
+                @click="currentTab = 'banner'"
+              >
+                Banner trang chủ
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div
+          x-show="currentTab === 'info'"
+          class="p-10"
+          x-data="addressPicker"
+          x-init="
+             console.log(fullAddress);
+                        if(fullAddress){
+                            toAddress(fullAddress).then(address => {
+                                provinces = address.provinces;
+                                districts = address.districts;
+
+                                wards = address.wards;
+                                selectedProvince = address.selectedProvince;
+                                selectedDistrict = address.selectedDistrict;
+                                selectedWard = address.selectedWard;
+                                detailAddress = address.detailAddress;
+                            });
+                        }"
+        >
+          <!--            @NotEmpty(message = "Tên cửa hàng không được để trống")-->
+          <!--            public String shopName;-->
+          <!--            @Pattern(regexp = "^(\\+84|0)\\d{9,10}$", message = "Số điện thoại không hợp lệ")-->
+          <!--            public String shopPhone;-->
+          <!--            @Email(message = "Email không hợp lệ")-->
+          <!--            public String shopEmail;-->
+          <!--            @NotEmpty(message = "Thành phố không được để trống")-->
+          <!--            public String shopCity;-->
+          <!--            @NotEmpty(message = "Quận/Huyện không được để trống")-->
+          <!--            public String shopWard;-->
+          <!--            @NotEmpty(message = "Phường/Xã không được để trống")-->
+          <!--            public String shopDistrict;-->
+          <!--            @NotEmpty(message = "Đường không được để trống")-->
+          <!--            public String shopStreet;-->
+          <!--            @NotEmpty(message = "Tên chủ cửa hàng không được để trống")-->
+          <!--            public String shopOwner;-->
+          <!--            @URL(message = "Logo không hợp lệ")-->
+          <!--            public String shopLogo;-->
+
+          <form
+            x-data="{
+                    errors: {},
+                    isUpdating: false,
+                    }"
+            x-on:submit.prevent="
+                    if(!isValidAddress()){
+                        errors.address = 'Địa chỉ không hợp lệ';
+                    }
+                    const data = {};
+                    data.shopName = $event.target.shopName.value;
+                    data.shopPhone = $event.target.shopPhone.value;
+                    data.shopEmail = $event.target.shopEmail.value;
+                    data.shopCity = getSelectedProvinceName()
+                    data.shopWard = getSelectedWardName();
+                    data.shopDistrict = getSelectedDistrictName();
+                    data.shopStreet = detailAddress;
+                    data.shopOwner = $event.target.shopOwner.value;
+<!--                    data.shopLogo = $event.target.shopLogo.value;-->
+                    isUpdating = true;
+                    window.apiClient.updateShopSetting(data)
+                    .then(response => {
+                        $store.toast.add('success', 'Thành công', 'Cập nhật thông tin cửa hàng thành công');
+                    }).catch(async error => {
+                        const data = JSON.parse(await error.response.text())
+                        $store.toast.add('error', 'Lỗi', data.error);
+                        errors = data.errors;
+                    })
+                    .finally(() => {
+                        isUpdating = false;
+                    });
+        "
+          >
+            <div class="relative z-0 w-full mb-6 group">
+              <input
+                type="text"
+                name="shopName"
+                id="shopName"
+                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                placeholder=""
+                required
+                th:value="${shopSetting.getShopName()}"
+              />
+              <label
+                for="shopName"
+                class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Tên cửa hàng
+              </label>
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.shopName"></p>
+            </div>
+            <div class="relative z-0 w-full mb-6 group">
+              <input
+                type="tel"
+                name="shopPhone"
+                id="shopPhone"
+                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                placeholder=" "
+                required
+                th:value="${shopSetting.getShopPhone()}"
+              />
+              <label
+                for="shopPhone"
+                class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Số điện thoại
+              </label>
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.shopPhone"></p>
+            </div>
+            <div class="relative z-0 w-full mb-6 group">
+              <input
+                type="email"
+                name="shopEmail"
+                id="shopEmail"
+                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                placeholder=" "
+                required
+                th:value="${shopSetting.getShopEmail()}"
+              />
+              <label
+                for="shopEmail"
+                class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Email</label
+              >
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.shopEmail"></p>
+            </div>
+            <div class="relative z-0 w-full mb-6 group">
+              <input
+                type="text"
+                name="shopOwner"
+                id="shopOwner"
+                class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                placeholder=" "
+                required
+                th:value="${shopSetting.getShopOwner()}"
+              />
+              <label
+                for="shopOwner"
+                class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Họ tên chủ cửa hàng</label
+              >
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.shopOwner"></p>
+            </div>
+            <div th:replace="~{components/AddressPicker::addressPicker()} ">
+              <p class="text-sm text-red-600 dark:text-red-500" x-text="errors.address"></p>
+            </div>
+            <div class="flex justify-end w-full gap-x-4 mt-4">
+              <button
+                type="submit"
+                :disabled="isUpdating"
+                class="text-white bg-primary-700 px-5 py-2.5 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm text-center"
+              >
+                Lưu thông tin
+              </button>
+              <button
+                type="reset"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-200"
+              >
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

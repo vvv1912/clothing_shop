@@ -1,0 +1,644 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.2/markdown-it.min.js"
+            integrity="sha512-ohlWmsCxOu0bph1om5eDL0jm/83eH09fvqLDhiEdiqfDeJbEvz4FSbeY0gLJSVJwQAp0laRhTXbUQG+ZUuifUQ=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+    ></script>
+    <div class="text-sm font-medium flex justify-between text-center text-gray-500 border-b border-gray-200">
+        <ul class="flex flex-wrap -mb-px">
+            <li class="mr-2">
+                <a
+                        href="#detail"
+                        class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+                >
+                    Chi tiết
+                </a>
+            </li>
+            <li class="mr-2">
+                <a
+                        href="#option"
+                        class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+                        aria-current="page"
+                >
+                    Kiểu dáng
+                </a>
+            </li>
+            <li class="mr-2">
+                <a
+                        href="#images"
+                        class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300"
+                >
+                    Hình ảnh
+                </a>
+            </li>
+        </ul>
+        <a
+                th:href="@{/admin/product}"
+                type="button"
+                class="flex items-center justify-center text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none"
+        >
+            Quay lại
+        </a>
+    </div>
+    <section id="detail" class="bg-white grid grid-cols-6 p-6 gap-x-4">
+        <div class="col-span-2">
+            <img
+                    class="w-full aspect-[3/4] object-cover"
+                    alt="iPhone 12 Pro Max 512GB"
+                    th:src="${product.displayImage}"
+            />
+        </div>
+        <div class="py-8 px-4 col-span-4 lg:py-16">
+            <h2 class="mb-2 text-xl font-semibold leading-none text-gray-900 md:text-2xl"
+                th:text="${product.name}"></h2>
+            <div class="flex gap-x-4">
+            <span
+                    class="mb-4 text-xl font-extrabold leading-none text-gray-900 md:text-2xl"
+                    th:text="${product.getVietnamesePrice()}"
+            >
+            </span>
+                <span
+                        th:if="${product.discount> 0}"
+                        class="ml-4 text-xl font-extrabold leading-none text-gray-900 md:text-2xl"
+                        th:text="${'-'+product.discount+ '%'}"
+                >
+            </span>
+            </div>
+
+            <dl class="flex items-center space-x-6">
+                <div>
+                    <dt class="mb-2 font-semibold leading-none text-gray-900">Danh mục</dt>
+                    <dd class="mb-4 font-light text-gray-500 sm:mb-5" th:text="${product.category.name}"></dd>
+                </div>
+                <div>
+                    <dt class="mb-2 font-semibold leading-none text-gray-900">Giới tính</dt>
+                    <dd class="mb-4 font-light text-gray-500 sm:mb-5" th:text="${product.getForGenderDisplay()}"></dd>
+                </div>
+            </dl>
+            <div
+                    x-data="{
+             show: false,
+                 showMore: function(){
+                      this.show = !this.show
+                 },
+                 showLess: function(){
+                      this.show = !this.show
+                 }
+            }"
+                    class="mb-6"
+            >
+                <script th:inline="javascript">
+                    /*<![CDATA[*/
+                    const description = /*[[${product.description}]]*/ "";
+                    const md = markdownit();
+                    const descriptionHtml = md.render(description);
+                    /*]]>*/
+                </script>
+                <dt class="mb-2 font-semibold leading-none text-gray-900">Mô tả</dt>
+                <div
+                        class="mb-0 ml-3 font-light prose overflow-hidden transition-[max-height] duration-500 ease-in-out text-gray-500 sm:mb-5"
+                        :class="{'max-h-[200px]': !show, 'max-h-[1000px]': show}"
+                        x-html="descriptionHtml"
+                ></div>
+                <div class="justify-center flex">
+                    <button
+                            x-show="!show"
+                            @click="showMore()"
+                            class="mx-auto text-primary-700 h hover:underline hover:text-blue-500"
+                    >
+                        xem thêm
+                    </button>
+                    <button
+                            x-show="show"
+                            @click="showLess()"
+                            class="mx-auto text-primary-700 hover:underline hover:text-blue-500"
+                    >
+                        thu gọn
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a
+                        th:href="@{/admin/product/{productId}/edit(productId=${product.productId})}"
+                        class="text-white inline-flex items-center bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                >
+                    <svg
+                            aria-hidden="true"
+                            class="mr-1 -ml-1 w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path>
+                        <path
+                                fill-rule="evenodd"
+                                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                clip-rule="evenodd"
+                        ></path>
+                    </svg>
+                    Sửa
+                </a>
+
+            </div>
+        </div>
+    </section>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const productOptions = /*[[${product.productOptions}]]*/ [];
+        const productImages = /*[[${product.images}]]*/ [];
+        const productId = /*[[${product.productId}]]*/ 0;
+        const colors = /*[[${colors}]]*/ [];
+        /*]]>*/
+        var validColors = [];
+        productOptions.forEach((option) => {
+            if (!validColors.find((color) => color.colorId === option.color.colorId)) {
+                validColors.push(option.color);
+            }
+        });
+        validColors.forEach((color) => {
+            color.images = [];
+            productImages.forEach((image) => {
+                if (image.forColor.colorId === color.colorId) {
+                    color.images.push(image);
+                }
+            });
+        });
+        console.log(validColors);
+    </script>
+    <section
+            id="option"
+            class="bg-white mt-6 flex flex-col p-6 gap-x-4"
+            x-data="{
+    selectedColor: null,
+    }"
+    >
+        <div class="flex justify-between">
+            <h2 class="mb-4 text-2xl font-bold text-gray-900">Kiểu dáng</h2>
+            <button
+                    data-modal-target="addOptionModal"
+                    data-modal-toggle="addOptionModal"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+            >
+                Thêm kiểu dáng
+            </button>
+            <div
+                    id="addOptionModal"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full"
+            >
+                <div class="relative w-full max-w-2xl max-h-full">
+                    <!-- Modal content -->
+                    <div class="relative bg-white rounded-lg shadow">
+                        <!-- Modal header -->
+                        <div class="flex items-start justify-between p-4 border-b rounded-t">
+                            <h3 class="text-xl font-semibold text-gray-900">Thêm kiểu dáng cho sản phẩm</h3>
+                            <button
+                                    type="button"
+                                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center"
+                                    data-modal-hide="addOptionModal"
+                            >
+                                <svg
+                                        class="w-3 h-3"
+                                        aria-hidden="true"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 14 14"
+                                >
+                                    <path
+                                            stroke="currentColor"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                                    />
+                                </svg>
+                                <span class="sr-only">Close modal</span>
+                            </button>
+                        </div>
+                        <!-- Modal body -->
+                        <div
+                                class="p-6 space-y-6"
+                                x-data="{
+                        errors: {}
+                        }"
+                        >
+                            <form
+                                    id="createProductOptionFrom"
+                                    x-on:submit="
+                                const payload ={}
+                                payload.productId =productId;
+                                payload.colorName = $el.color.value;
+                                payload.size = $el.size.value;
+                                payload.stock  =Number($el.stock.value)
+                                if(!payload.stock || payload.stock <0){
+                                    errors.stock='Số lượng tồn kho không hợp lệ '
+                                }
+                                window.apiClient.createProductOption(payload)
+                                .then(r=>{
+                                    $store.toast.add('success','Thành công','Tạo kiểu dáng thành công!');
+                                    payload.productOptionId = r;
+                                    setTimeout(()=>{
+                                        window.location.reload();
+                                    },1000);
+                                })
+                                .catch(e=>{
+                                 $store.toast.add('error','Thất bại',e.response.error);
+                                 errors = e.response.errors;
+                                console.log(e);
+                                })
+                            
+                            "
+                            >
+                                <div
+                                        x-data="{
+                                colorsOptions:[],
+                                filteredColors: [],
+                                selectColor: '',
+                                setSelectColor: function(color){
+                                    this.selectColor = color;
+                                },
+                                showDropdown:null,
+                                hideDropdown: null,
+
+                                }"
+                                        x-init="
+                                colorsOptions = [...colors]
+                                filteredColors = [...colors]
+                                $watch('selectColor', (value) => {
+                                    filteredColors = colorsOptions.filter(color => color.name.toLowerCase().includes(value.toLowerCase()));
+                                });
+                                const $targetDropdownEl = document.getElementById('dropdownColorSelect');
+                                const $triggerEl = document.getElementById('lb');
+                                const options = {
+                                          placement: 'bottom',
+                                          triggerType: '',
+                                          offsetSkidding: 0,
+                                          offsetDistance: 10,
+                                          delay: 300,
+                                          ignoreClickOutsideClass: true,
+                                          };
+                                const dropdown = new Dropdown($targetDropdownEl, $triggerEl, options);
+
+                                       showDropdown= ()=>{
+                                       dropdown.show()}
+                                        hideDropdown= ()=>{
+                                        dropdown.hide()}
+
+
+"
+                                >
+                                    <label for="color" class="block mb-2 text-sm font-medium text-gray-900"> Màu
+                                        sắc </label>
+                                    <input
+                                            type="text"
+                                            id="color"
+                                            name="color"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                            placeholder="Nhập màu sắc"
+                                            required
+                                            x-on:click="showDropdown()"
+                                            x-model="selectColor"
+                                    />
+
+                                    <p id="lb" class="mt-2 text-sm text-red-600 dark:text-red-500"
+                                       x-text="errors.colorName"></p>
+                                    <div
+                                            id="dropdownColorSelect"
+                                            class="z-10 w-full mx-auto -mt-2 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-xl border-gray-100 border dark:bg-gray-700"
+                                    >
+                                        <ul
+                                                class="py-2 max-h-52 overflow-y-scroll text-sm text-gray-700 dark:text-gray-200"
+                                                aria-labelledby="color"
+                                        >
+                                            <template x-for="c in filteredColors" :key="c.colorId">
+                                                <li>
+                                                    <a
+                                                            class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                                                            x-text="c.name"
+                                                            x-on:click="setSelectColor(c.name)"
+                                                    >
+                                                    </a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="size" class="block mb-2 text-sm font-medium text-gray-900">Kích
+                                        cỡ</label>
+                                    <input
+                                            type="text"
+                                            id="size"
+                                            name="size"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                            placeholder="Nhập kích cỡ"
+                                            required
+                                            x-on:change="
+                                    $event.target.value = $event.target.value.toUpperCase();
+                                        "
+                                    />
+                                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.size"></p>
+                                </div>
+                                <div>
+                                    <label for="stock" class="block mb-2 text-sm font-medium text-gray-900"> Tồn
+                                        kho </label>
+                                    <input
+                                            type="number"
+                                            id="stock"
+                                            name="stock"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                            placeholder="Nhập tồn kho"
+                                            value="0"
+                                            required
+                                    />
+
+                                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.stock"></p>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Modal footer -->
+                        <div class="flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b">
+                            <button
+                                    data-modal-hide="addOptionModal"
+                                    type="button"
+                                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                                    x-on:click="
+                                    const form = document.getElementById('createProductOptionFrom');
+                                    form.dispatchEvent(new Event('submit', { cancelable: true }));
+                                    "
+                            >
+                                Lưu
+                            </button>
+                            <button
+                                    data-modal-hide="addOptionModal"
+                                    type="button"
+                                    class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative overflow-x-auto">
+            <div x-show="productOptions.length === 0" class="flex justify-center items-center h-32">
+                <p class="text-gray-500">Chưa có kiểu dáng</p>
+            </div>
+            <table class="w-full text-sm text-left text-gray-500" x-show="productOptions.length > 0">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3">#</th>
+                    <th scope="col" class="px-6 py-3">Màu sắc</th>
+                    <th scope="col" class="px-6 py-3">Kích cỡ</th>
+                    <th scope="col" class="px-6 py-3">Tồn kho</th>
+                    <th>Hành động</th>
+                </tr>
+                </thead>
+                <tbody th:each=" op : ${product.productOptions}">
+                <tr class="bg-white border-b">
+                    <td class="px-6 py-4" th:text="${op.productOptionId}"></td>
+
+                    <th
+                            scope="row"
+                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
+                            th:text="${op.color.name}"
+                    ></th>
+                    <td class="px-6 py-4" th:text="${op.size}"></td>
+                    <td class="px-6 py-4" th:text="${op.stock}"></td>
+                    <td class="px-6 py-4">
+                        <button
+                                type="button"
+                                th:unless="${op.deletedDate}"
+                                th:attr="value=${op.productOptionId}"
+                                x-on:click="
+                          const id = $event.target.value;
+window.confirm('Bạn có chắc chắn muốn xóa kiểu dáng này không?') && window.apiClient.deleteProductOption( id, null).then(r=>{
+                                    $store.toast.add('success', 'Thành công', 'Xóa kiểu dáng thành công!');
+                                    setTimeout(()=>{
+                                        window.location.reload();
+                                    },1000);
+                                }).catch(e=>{
+                                 $store.toast.add('error', 'Thất bại', e.response.error);
+                                 console.log(e);
+                                })
+"
+                                class="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                        >
+                            Xoá/ẩn
+                        </button>
+                        <button
+                                th:if="${op.deletedDate}"
+                                type="button"
+                                th:attr="value=${op.productOptionId}"
+                                x-on:click="
+                          const id = $event.target.value;
+window.confirm('Bạn có chắc chắn muốn khôi phục kiểu dáng này không?') && window.apiClient.recoveryProductOption( id, null).then(r=>{
+                                    $store.toast.add('success', 'Thành công', 'Khôi phục kiểu dáng thành công!');
+                                    setTimeout(()=>{
+                                        window.location.reload();
+                                    },1000);
+                                }).catch(e=>{
+                                 $store.toast.add('error', 'Thất bại', e.response.error);
+                                 console.log(e);
+                                })
+"
+                                class="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-red-700 dark:focus:ring-red-900"
+                        >
+                            Khôi phục
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="images" class="bg-white mt-6 flex flex-col p-6 gap-x-4">
+        <div class="flex justify-between">
+            <h2 class="mb-4 text-2xl font-bold text-gray-900">Hình ảnh</h2>
+        </div>
+
+        <div
+                class="m-3"
+                id="accordion-color"
+                x-data="{
+             listColors: [],
+             currentSelectColorId: null,
+             }"
+                x-init="
+                    listColors = [...validColors]
+                    const options = {
+                        alwaysOpen: false,
+                        activeClasses: 'bg-primary-100 text-primary-600',
+                        inactiveClasses: 'text-gray-500'
+                    };
+
+                    function render(value){
+                     setTimeout(() => {
+                            const accordionItems = value.map(color => {
+                                return {
+                                    id: 'accordion-color-heading-' + color.colorId,
+                                    triggerEl: document.querySelector('#accordion-color-heading-' + color.colorId),
+                                    targetEl: document.querySelector('#accordion-color-body-' + color.colorId),
+                                    active: false
+                                }
+                            });
+                            console.log(accordionItems);
+                            const accordion = new Accordion(accordionItems, options);
+                        }, 1000);
+                    }
+                    render(listColors);
+                    $watch('listColors', (value) => {
+                        render(value);
+                    });
+"
+        >
+            <input
+                    hidden="hidden"
+                    type="file"
+                    id="uploadImageForColor"
+                    accept="image/*"
+                    x-on:change="
+                           const file = $event.target.files[0];
+                           if(!file){
+                                return;
+                           }
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          const tempFileName = 'https://i.stack.imgur.com/ATB3o.gif?id=' + self.crypto.randomUUID();
+                          const color = listColors.find(color => color.colorId === currentSelectColorId);
+                          color.images.push({
+                              url: tempFileName
+                          });
+                          listColors = [...listColors];
+                          try {
+                              const res = await axios.post('/api/file/upload', formData, {
+                                  headers: {
+                                      'Content-Type': 'multipart/form-data'
+                                  }
+                              });
+                              var newUrl = res.data;
+                              color.images.push({
+                                  url: newUrl
+                              });
+                              console.log(color);
+                          } catch (e) {
+                              $store.toast.add('error', 'Thất bại', e?.response?.error);
+                              console.log(e);
+                              return;
+                          } finally {
+                              color.images = color.images.filter(image => image.url !== tempFileName);
+                              listColors = [...listColors];
+
+                          }
+                          const payload = {
+                              productId: productId,
+                              colorId: currentSelectColorId,
+                              url: newUrl
+                          }
+                          window.apiClient.createProductImage(payload, null)
+                              .then(r => {
+                                  $store.toast.add('success', 'Thành công', 'Tải ảnh thành công!');
+                              })
+                              .catch(e => {
+                                  $store.toast.add('error', 'Thất bại', e.response.error);
+                                  console.log(e);
+                              })
+"
+            />
+            <template x-for="color in listColors" :key="color.colorId">
+                <div class="mb-2">
+                    <div
+                            :id="'accordion-color-heading-'+color.colorId"
+                            class="flex justify-between cursor-pointer items-center border border-b-0 border-gray-200 rounded-t-xl focus:ring-4 focus:ring-blue-200 hover:bg-blue-100"
+                    >
+                        <h2>
+                            <button
+                                    type="button"
+                                    class="flex items-center text-lg text-black justify-between w-full p-5 font-medium text-left"
+                                    aria-expanded="true"
+                                    x-bind:data-accordion-target="'#accordion-color-body-'+color.colorId"
+                                    x-bind:aria-controls="'accordion-color-body-'+color.colorId"
+                            >
+                                <span x-text="'Màu '+ color.name +' #' + color.colorId"> </span>
+                            </button>
+                        </h2>
+                        <button
+                                x-on:click="
+                            currentSelectColorId = color.colorId;
+                            document.getElementById('uploadImageForColor').click();
+                            "
+                                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                        >
+                            Thêm hình ảnh
+                        </button>
+                    </div>
+                    <div
+                            :id="'accordion-color-body-'+color.colorId"
+                            class="hidden border border-gray-200 rounded-b-xl bg-gray-50"
+                            aria-labelledby="accordion-color-heading-1"
+                    >
+                        <div x-show="color.images.length === 0" class="flex justify-center items-center h-32">
+                            <p class="text-gray-500">Chưa có hình ảnh</p>
+                        </div>
+                        <div class="grid grid-cols-3 md:grid-cols-4 mt-2 gap-4" x-show="color.images.length > 0">
+                            <template x-for="image in color.images" :key="image.url">
+                                <div class="relative">
+                                    <button
+                                            type="button"
+                                            x-on:click="
+                              window.confirm('Bạn có chắc chắn muốn xóa ảnh này không?') && window.apiClient.deleteProductImage({url: image.url}, null)
+                              $store.toast.add('success', 'Thành công', 'Xóa ảnh thành công!');
+                              const color1 = listColors.find(color => color.colorId === color.colorId);
+                                color1.images = color1.images.filter(image1 => image1.url !== image.url);
+                                listColors = [...listColors];
+
+
+"
+                                            class="absolute top-0 right-0 z-10 text-red-500-400 bg-red-300 hover:bg-red-500 hover:text-red-700 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center"
+                                    >
+                                        <svg
+                                                class="w-3 h-3"
+                                                aria-hidden="true"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 14 14"
+                                        >
+                                            <path
+                                                    stroke="currentColor"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                                            ></path>
+                                        </svg>
+                                        <span class="sr-only">Close modal</span>
+                                    </button>
+                                    <img class="h-auto max-w-full rounded-lg" :src="image.url" alt=""/>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </section>
+</div>
+</body>
+</html>

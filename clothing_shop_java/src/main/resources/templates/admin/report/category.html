@@ -1,0 +1,286 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Dashboard</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+    <script type="module">
+        import {getMainChartOptions} from "/js/baocaodanhmuc.js";
+
+        window.getMainChartOptions = getMainChartOptions;
+    </script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script type="text/javascript">
+        function getDateDisplay(date, groupBy = "day") {
+            if (groupBy === "day") {
+                return date.toLocaleDateString("vi-VN");
+            }
+            return date.getMonth() + 1 + "/" + date.getFullYear();
+        }
+    </script>
+    <div
+
+    >
+        <div class="border-2 py-4 border-dashed rounded-lg border-gray-300 min-h-[24rem] mb-4">
+            <div id="mainChart"></div>
+        </div>
+        <div
+                class="border-2 p-2 border-dashed rounded-lg border-gray-300 bg-white mb-4"
+                x-data="{
+            queryData:{
+                startDay: null,
+                endDay: null,
+            },
+            chart:null,
+            sort:{
+                   sortDirection: 'desc',
+            sortField: 'date',
+            },
+            toggleSortDirection(){
+                this.sort.sortDirection = this.sort.sortDirection === 'desc' ? 'asc' : 'desc';
+            },
+            data: [],
+            loading: false,
+            exportExcel:function (){
+
+                let content=this.data.map(item => {
+                    const row = {};
+                    row['Mã danh mục'] = item.category.categoryId;
+                    row['Tên danh mục'] = item.category.name;
+                    row['Tổng số sản phẩm'] = item.totalProducts;
+                    row['Tổng bán'] = item.totalSoldProducts;
+                    row['Tổng doanh thu'] = item.totalRevenue;
+                    return row;
+                });
+                const worksheet = XLSX.utils.json_to_sheet(content);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+                XLSX.writeFile(workbook, 'report.xlsx');
+
+
+            },
+        }"
+                x-init="
+               const getData = async ()=>{
+                loading = true;
+                try {
+                    data = await window.apiClient.getCategoryReport(queryData.startDay?.getTime(),
+                    queryData.endDay?.getTime());
+                    console.log(loading);
+                } catch (e) {
+                   $store.toast.add('error', 'Có lỗi xảy ra');
+                } finally {
+                    loading = false;
+                }
+               }
+                getData().then(()=>{
+                    const options=  getMainChartOptions({data});
+                    chart = new ApexCharts(document.querySelector('#mainChart'), options);
+                    chart.render();
+                });
+                $watch('queryData', () => {
+                console.log(queryData);
+                    setTimeout(()=>{
+                      getData().then(()=>{
+                      const options=  getMainChartOptions({data});
+                         chart?.destroy();
+                        chart = new ApexCharts(document.querySelector('#mainChart'), options);
+                            chart.render();
+                        });
+                    }, 500);
+                }, {deep: true});
+                $watch('sort', () => {
+
+                    data.sort((a, b) => {
+                        if(sort.sortDirection === 'desc'){
+                            return b[sort.sortField] - a[sort.sortField];
+                        }
+                        return a[sort.sortField] - b[sort.sortField];
+                    })
+                }, {deep: true});
+
+            "
+        >
+            <h2 class="text-lg mx-auto font-semibold text-gray-900">
+                Thống kê danh mục
+            </h2>
+            <div class="flex border-b py-2 mb-2 border-gray-200 justify-end gap-x-2 items-center">
+                <div class="font-light">
+                    <div date-rangepicker datepicker-format="dd/mm/yyyy" class="flex items-center datepicker">
+                        <div class="relative">
+                            <input
+                                    name="start"
+                                    datepicker-format="dd/mm/yyyy"
+                                    type="text"
+                                    id="date-start"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                                    placeholder="Từ ngày"
+                            />
+                        </div>
+                        <span class="mx-4 text-gray-500">đến</span>
+                        <div class="relative">
+                            <input
+                                    name="end"
+                                    datepicker-format="dd/mm/yyyy"
+                                    type="text"
+                                    id="date-end"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                                    placeholder="Đến ngày"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <button
+                        @click="
+                        const startDay = document.querySelector('#date-start').value;
+                        const endDay = document.querySelector('#date-end').value;
+                        const startDayArr = startDay.split('/');
+                        const endDayArr = endDay.split('/');
+                        queryData.startDay = startDayArr.length === 3 ? new Date(startDayArr[2], startDayArr[1] - 1, startDayArr[0]) : null;
+                        queryData.endDay = endDayArr.length === 3 ? new Date(endDayArr[2], endDayArr[1] - 1, endDayArr[0]) : null;
+"
+                        class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+                        type="button"
+                >
+                    Lọc
+                </button>
+                <button
+                        @click="exportExcel()"
+                        type="button"
+                        class="focus:outline-none text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-200 font-medium rounded-lg text-sm px-5 py-2.5"
+                >
+                    Xuất excel
+                </button>
+            </div>
+
+            <div
+                    class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-w-2 scrolling-touch"
+                    style="height: 70vh"
+            >
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">
+                            <div
+                                    class="flex items-center cursor-pointer"
+                            >
+                                Danh mục
+                            </div>
+                        </th>
+                        <th
+                                scope="col"
+                                class="px-6 py-3"
+                                @click="toggleSortDirection(); sort.sortField = 'totalProducts'"
+                        >
+                            Tổng số sản phẩm
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            <div
+                                    class="flex items-center cursor-pointer"
+                                    @click="toggleSortDirection(); sort.sortField = 'totalSoldProducts'"
+                            >
+                                Tổng bán
+                                <a href="#"
+                                >
+                                    <svg
+                                            class="w-3 h-3 ms-1.5"
+                                            aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                                d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                                        />
+                                    </svg
+                                    >
+                                </a>
+                            </div>
+                        </th>
+                        <th
+                                scope="col"
+                                class="px-6 py-3"
+                                @click="toggleSortDirection(); sort.sortField = 'totalRevenue'"
+                        >
+                            <div class="flex items-center cursor-pointer">
+                                Tổng doanh thu
+                                <a href="#"
+                                >
+                                    <svg
+                                            class="w-3 h-3 ms-1.5"
+                                            aria-hidden="true"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                                d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                                        />
+                                    </svg
+                                    >
+                                </a>
+                            </div>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template x-if="loading">
+                        <tr>
+                            <td colspan="4" class="">
+                                <div class="h-28 w-full flex justify-center items-center">
+                                    <div role="status">
+                                        <svg aria-hidden="true"
+                                             class="w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                                             viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                  fill="currentColor"/>
+                                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                  fill="currentFill"/>
+                                        </svg>
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    <template
+
+                            x-for="item in data"
+                            :key="item.category.categoryId"
+                    >
+
+
+                        <tr x-show="!loading" class="bg-white border-b">
+                            <th
+                                    scope="row"
+                                    class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
+                                    x-text="item.category.name"
+                            >
+
+
+                            </th>
+                            <td class="px-6 py-4" x-text="item.totalProducts">
+
+                            <td class="px-6 py-4" x-text="item.totalSoldProducts">
+
+                            </td>
+                            <td class="px-6 py-4" x-text="VND.format(item.totalRevenue)"></td>
+
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

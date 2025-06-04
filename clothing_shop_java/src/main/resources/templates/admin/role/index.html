@@ -1,0 +1,608 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="admin/layout"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quản lý vai trò</title>
+  </head>
+  <body>
+    <div
+      layout:fragment="content"
+      x-data="{
+      roles: [],
+      permissions: [],
+        selectedRoleId: null,
+        getSelectedRole: function () {
+          return this.roles.find((role) => role.normalizedName === this.selectedRoleId);
+        },
+    }"
+      x-init="
+          window.apiClient.getAllRoles().then((data) => {
+            roles = [...data];
+          })
+          .catch((error) => {
+            $store.toast.add('error','Có lỗi xảy ra' , error.response.message);
+          });
+          window.apiClient.getAllPermissions().then((data) => {
+            permissions = [...data];
+          })
+        "
+    >
+      <!-- Start block -->
+      <section class="bg-gray-50 dark:bg-gray-900 p-3 sm:p-5 antialiased">
+        <div class="mx-auto max-w-screen-2xl px-4 lg:px-12">
+          <div class="bg-white dark:bg-gray-800 relative shadow-md sm:rounded-lg overflow-hidden">
+            <div
+              class="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0 md:space-x-4 p-4"
+            >
+              <div class="flex-1 flex items-center space-x-2">
+                <h5>
+                  <span class="text-gray-500"> Tổng số vai trò: </span>
+                  <span x-text="roles.length"> </span>
+                </h5>
+              </div>
+            </div>
+            <div
+              class="flex flex-col md:flex-row items-stretch md:items-center md:space-x-3 space-y-3 md:space-y-0 justify-between mx-4 py-4 border-t dark:border-gray-700"
+            >
+              <div class="w-full md:w-1/2"></div>
+              <div
+                class="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch md:items-center justify-end md:space-x-3 flex-shrink-0"
+              >
+                <button
+                  type="button"
+                  id="createProductButton"
+                  data-modal-toggle="createProductModal"
+                  class="flex items-center justify-center text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800"
+                >
+                  <svg
+                    class="h-3.5 w-3.5 mr-1.5 -ml-1"
+                    fill="currentColor"
+                    viewbox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      clip-rule="evenodd"
+                      fill-rule="evenodd"
+                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    />
+                  </svg>
+                  Tạo vai trò
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" class="p-4">Mã vai trò</th>
+                    <th scope="col" class="p-4">Tên hiển thị</th>
+                    <th scope="col" class="p-4">Mô tả</th>
+                    <th scope="col" class="p-4">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="role in roles" :key="role.normalizedName">
+                    <tr class="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <th scope="row" class="px-4 py-3 font-medium whitespace-nowrap" x-text="role.normalizedName"></th>
+                      <td class="px-4 py-3 font-medium text-gray-900">
+                        <p x-text="role.displayName" class="whitespace-normal"></p>
+                      </td>
+                      <td class="px-4 py-3 text-gray-900" x-text="role.description"></td>
+                      <td>
+                        <div class="flex items-center space-x-4">
+                          <button
+                            x-show="!role.normalizedName.toLowerCase().includes('admin')"
+                            @click="
+                                selectedRoleId = role.normalizedName;
+                                document.getElementById('drawer-update-role').classList.remove('hidden');updateDrawerBtn.click();"
+                            class="py-2 px-3 flex items-center text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-4 w-4 mr-2 -ml-0.5"
+                              viewbox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                              <path
+                                fill-rule="evenodd"
+                                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                clip-rule="evenodd"
+                              />
+                            </svg>
+                            Sửa
+                          </button>
+
+                          <button
+                            x-show="!role.normalizedName.toLowerCase().includes('admin')"
+                            @click=" selectedRoleId = role.normalizedName; deleteModalBtn.click();"
+                            type="button"
+                            class="flex items-center text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2 text-center dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-4 w-4 mr-2 -ml-0.5"
+                              viewbox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fill-rule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd"
+                              />
+                            </svg>
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- End block -->
+      <button
+        class="hidden"
+        id="update-role-drawer-btn"
+        data-drawer-target="drawer-update-role"
+        data-drawer-placement="right"
+        data-drawer-show="drawer-update-role"
+        aria-controls="drawer-update-role"
+        type="button"
+      ></button>
+      <button
+        data-modal-target="delete-modal"
+        data-modal-toggle="delete-modal"
+        class="hidden"
+        id="delete-modal-btn"
+        type="button"
+      ></button>
+      <div
+        id="createProductModal"
+        tabindex="-1"
+        aria-hidden="true"
+        x-data="{
+            newRole: {
+              displayName: '',
+              description: '',
+              permissions: [],
+            },
+            errors: {},
+            isCreating: false,
+            createRole: function () {
+                this.isCreating = true;
+                 this.newRole.normalizedName ='ROLE_'+ this.newRole.normalizedName;
+                window.apiClient.createRole({description: this.newRole.description, displayName: this.newRole.displayName,  normalizedName: this.newRole.normalizedName})
+                .then((data) => {
+                    this.isCreating = false;
+                    $store.toast.add('success','Thành công' , 'Vai trò đã được tạo');
+                    roles.push({
+                        ...this.newRole,
+                    });
+                    this.newRole = {
+                      displayName: '',
+                      description: '',
+                      permissions: [],
+                    };
+                    document.getElementById('createProductButton')?.click();
+                })
+                .catch((error) => {
+                    this.isCreating = false;
+                    this.errors = error.response.errors;
+                    $store.toast.add('error','Có lỗi xảy ra' , error.response.error);
+                });
+            },
+
+         }"
+        class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] md:h-full"
+      >
+        <div class="relative p-4 w-full max-w-3xl h-full md:h-auto">
+          <!-- Modal content -->
+          <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+            <!-- Modal header -->
+            <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5 dark:border-gray-600">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tạo vai trò mới</h3>
+              <button
+                type="button"
+                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                data-modal-toggle="createProductModal"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="w-5 h-5"
+                  fill="currentColor"
+                  viewbox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                <span class="sr-only">Close modal</span>
+              </button>
+            </div>
+            <div class="flex flex-col gap-y-2 p-2">
+              <div>
+                <label for="simple-search" class="sr-only"> Mã vai trò </label>
+                <div class="relative w-full">
+                  <div class="absolute inset-y-0 start-0 flex items-center ps-4 pointer-events-none">ROLE_</div>
+                  <input
+                    type="text"
+                    id="simple-search"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-16 p-2.5"
+                    placeholder="Mã vai trò"
+                    required
+                    x-model="newRole.normalizedName"
+                  />
+                </div>
+                <p class="mt-2 text-sm text-red-600 dark:text-red-500">
+                  <span class="font-medium" x-text="errors.normalizedName"></span>
+                </p>
+              </div>
+              <div>
+                <label for="displayName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Tên hiển thị
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  id="displayName"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                  placeholder="Nhập tên hiển thị"
+                  required
+                  x-model="newRole.displayName"
+                />
+                <p class="mt-2 text-sm text-red-600 dark:text-red-500">
+                  <span class="font-medium" x-text="errors.displayName"></span>
+                </p>
+              </div>
+              <div>
+                <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Mô tả
+                </label>
+                <textarea
+                  id="description"
+                  rows="4"
+                  class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Mô tả quyền"
+                  x-model="newRole.description"
+                  required
+                >
+                </textarea>
+                <p class="mt-2 text-sm text-red-600 dark:text-red-500">
+                  <span class="font-medium" x-text="errors.description"></span>
+                </p>
+              </div>
+            </div>
+            <!-- Modal footer -->
+            <div class="flex justify-end px-4">
+              <button
+                type="button"
+                @click="createRole()"
+                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+              >
+                Tạo vai trò
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- drawer component -->
+      <div
+        id="drawer-update-role"
+        class="fixed hidden top-0 z-[80] h-screen w-96 p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800"
+        tabindex="-1"
+        aria-labelledby="drawer-update-role-label"
+        aria-hidden="true"
+        x-data="{
+        currentRole: {
+          displayName: '',
+          description: '',
+          permissions: [],
+        },
+        errors: {},
+        isUpdating: false,
+        currentTabs: 'display',
+
+        isPermissionInRole: function (permission) {
+          return this.currentRole.permissions.some((item) => item.normalizedName === permission.normalizedName);
+        },
+        updateRole:function (){
+            this.isUpdating = true;
+            window.apiClient.updateRole({description: this.currentRole.description, displayName: this.currentRole.displayName,  normalizedName: this.currentRole.normalizedName})
+            .then((data) => {
+                this.isUpdating = false;
+                $store.toast.add('success','Cập nhật thành công' , 'Vai trò đã được cập nhật');
+                roles = roles.map((role) => {
+                  if (role.normalizedName === this.currentRole.normalizedName) {
+                    role.displayName = this.currentRole.displayName;
+                    role.description = this.currentRole.description;
+                  }
+                  return role;
+                });
+            })
+            .catch((error) => {
+                this.isUpdating = false;
+                this.errors = error.response.errors;
+                $store.toast.add('error','Có lỗi xảy ra' , error.response.error);
+            });
+        },
+        addPermissionToRole: function (permission) {
+            this.isUpdating = true;
+            window.apiClient.assignPermission({
+            roleName: this.currentRole.normalizedName,
+            permissionName: permission.normalizedName,
+            })
+            .then((data) => {
+                this.isUpdating = false;
+                $store.toast.add('success','Thành công' , 'Quyền đã được thêm vào vai trò');
+                roles = roles.map((role) => {
+                  if (role.normalizedName === this.currentRole.normalizedName) {
+                    role.permissions.push(permission);
+                    this.currentRole = {...role};
+                  }
+                  return role;
+                });
+            })
+            .catch((error) => {
+                this.isUpdating = false;
+                this.errors = error.response.errors;
+                $store.toast.add('error','Có lỗi xảy ra' , error.response.error);
+            });
+        },
+        removePermissionFromRole: function (permission) {
+            this.isUpdating = true;
+            window.apiClient.removePermissionFromRole({
+            roleName: this.currentRole.normalizedName,
+            permissionName: permission.normalizedName,
+            })
+            .then((data) => {
+                this.isUpdating = false;
+                $store.toast.add('success','Thành công' , 'Quyền đã được xóa khỏi vai trò');
+                roles = roles.map((role) => {
+                  if (role.normalizedName === this.currentRole.normalizedName) {
+                    role.permissions = role.permissions.filter((item) => item.normalizedName !== permission.normalizedName);
+                    this.currentRole = {...role};
+                  }
+                  return role;
+                });
+            })
+            .catch((error) => {
+                this.isUpdating = false;
+                this.errors = error.response.errors;
+                $store.toast.add('error','Có lỗi xảy ra' , error.response.error);
+            });
+        },
+      }"
+        x-init="
+            $watch('selectedRoleId', (value) => {
+              currentRole = {...getSelectedRole()}
+            });
+      "
+      >
+        <button
+          type="button"
+          data-drawer-dismiss="drawer-update-role"
+          aria-controls="drawer-update-role"
+          class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 absolute top-2.5 right-2.5 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+        >
+          <svg
+            aria-hidden="true"
+            class="w-5 h-5"
+            fill="currentColor"
+            viewbox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span class="sr-only">Close menu</span>
+        </button>
+        <div class="grid gap-4 py-1 sm:grid-cols-3 sm:gap-6">
+          <div class="text-sm col-span-3 font-medium text-center text-gray-500 border-b">
+            <ul class="flex flex-wrap -mb-px">
+              <li class="me-2">
+                <button
+                  class="inline-block p-4 border-b-2 rounded-t-lg"
+                  :class="{'active text-blue-600 border-blue-600': currentTabs === 'display', 'hover:text-gray-600 hover:border-gray-300  border-transparent': currentTabs !== 'display'}"
+                  @click="currentTabs = 'display'"
+                >
+                  Hiển thị
+                </button>
+              </li>
+              <li class="me-2">
+                <button
+                  class="inline-block p-4 border-b-2 rounded-t-lg"
+                  :class="{'active text-blue-600 border-blue-600 ': currentTabs === 'permission', 'hover:text-gray-600 hover:border-gray-300  border-transparent': currentTabs !== 'permission'}"
+                  @click="currentTabs = 'permission'"
+                >
+                  Phân quyền
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div class="space-y-4 col-span-3 sm:space-y-6" x-show="currentTabs === 'display'">
+            <div>
+              <label for="displayName1" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Tên hiển thị
+              </label>
+              <input
+                type="text"
+                name="name"
+                id="displayName1"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                placeholder="Nhập tên hiển thị"
+                required
+                x-model="currentRole.displayName"
+              />
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500">
+                <span class="font-medium" x-text="errors.displayName"></span>
+              </p>
+            </div>
+            <div>
+              <label for="description1" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Mô tả
+              </label>
+              <textarea
+                id="description1"
+                rows="4"
+                class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-primary-500"
+                placeholder="Mô tả quyền"
+                x-model="currentRole.description"
+                required
+              >
+              </textarea>
+              <p class="mt-2 text-sm text-red-600 dark:text-red-500">
+                <span class="font-medium" x-text="errors.description"></span>
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <button
+                type="submit"
+                :disabled="isUpdating"
+                @click="updateRole()"
+                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-col gap-y-2 col-span-3" x-show="currentTabs === 'permission'">
+            <template x-for="permission in permissions" :key="permission.normalizedName">
+              <div class="py-4 flex border-b border-b-gray-200">
+                <div class="flex flex-col grow">
+                  <span class="ms-3 font-medium" x-text="permission.displayName"> </span>
+                  <p class="ms-3 text-sm text-gray-500" x-text="permission.description"></p>
+                </div>
+                <div class="flex flex-col">
+                  <label
+                    class="relative flex items-center mb-5 cursor-pointer"
+                    :class="{'cursor-not-allowed': isUpdating}"
+                  >
+                    <input
+                      type="checkbox"
+                      class="sr-only peer"
+                      :value="permission.normalizedName"
+                      :disabled="isUpdating"
+                      :checked="isPermissionInRole(permission)"
+                      @change="
+
+                                        const isChecked = $event.target.checked;
+                                        if (isChecked) {
+                                            addPermissionToRole(permission);
+                                        } else {
+                                            removePermissionFromRole(permission);
+                                        }
+                                        "
+                    />
+                    <div
+                      class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+                    ></div>
+                  </label>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div
+        id="delete-modal"
+        tabindex="-1"
+        class="fixed top-0 left-0 right-0 z-50 hidden p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full"
+      >
+        <div class="relative w-full h-auto max-w-md max-h-full">
+          <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <button
+              type="button"
+              class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-800 dark:hover:text-white"
+              data-modal-toggle="delete-modal"
+            >
+              <svg
+                aria-hidden="true"
+                class="w-5 h-5"
+                fill="currentColor"
+                viewbox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="sr-only">Close modal</span>
+            </button>
+            <div class="p-6 text-center">
+              <svg
+                aria-hidden="true"
+                class="mx-auto mb-4 text-gray-400 w-14 h-14 dark:text-gray-200"
+                fill="none"
+                stroke="currentColor"
+                viewbox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 class=" text-lg font-normal text-gray-700 dark:text-gray-400">
+                Bạn có chắc chắn muốn xóa vai trò <span class="font-semibold" x-text="getSelectedRole().displayName"></span>
+              </h3>
+                <p class="mb-5 mt-2 italic ">
+                    Hành động này đồng thời sẽ gỡ vai trò này khỏi tất cả người dùng có nó.
+                </p>
+              <button
+                type="button"
+                data-modal-toggle="delete-modal"
+                @click="
+                    window.apiClient.deleteRole(getSelectedRole().normalizedName)
+                    .then((data) => {
+                        $store.toast.add('success','Thành công' , 'Vai trò đã được xóa');
+                        roles = roles.filter((role) => role.normalizedName !== getSelectedRole().normalizedName);
+                    })
+                    .catch((error) => {
+                        $store.toast.add('error','Có lỗi xảy ra' , error.response.error);
+                    })
+                    "
+                class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
+              >
+               Vâng, tôi chắc chắn
+              </button>
+              <button
+                data-modal-toggle="delete-modal"
+                type="button"
+                class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+              >
+                Không, hủy bỏ
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script type="text/javascript">
+        const updateDrawerBtn = document.getElementById("update-role-drawer-btn");
+        const deleteModalBtn = document.getElementById("delete-modal-btn");
+      </script>
+    </div>
+  </body>
+</html>

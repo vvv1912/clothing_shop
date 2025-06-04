@@ -1,0 +1,833 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="admin/layout"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard</title>
+  </head>
+
+  <body>
+    <div layout:fragment="content">
+      <script type="module">
+        import { getMainChartOptions } from "/js/doanhthu.js";
+
+        window.getMainChartOptions = getMainChartOptions;
+      </script>
+      <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+      <script type="text/javascript">
+        document.addEventListener("alpine:init", () => {
+          Alpine.data("chartFilter", () => ({
+            startDate: null,
+            endDate: null,
+            groupBy: "day",
+            chart: null,
+            showSold: true,
+            showImport: true,
+            groupByDisplay: "1 tuần vừa qua",
+            setLast1Week() {
+              let now = new Date();
+              this.startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+              this.endDate = now;
+              this.groupBy = "day";
+              this.groupByDisplay = "1 tuần vừa qua";
+            },
+            setLast1Month() {
+              let now = new Date();
+              this.startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+              this.endDate = now;
+              this.groupBy = "day";
+              this.groupByDisplay = "1 tháng vừa qua";
+            },
+            setLast1Year() {
+              let now = new Date();
+              this.startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+              this.endDate = now;
+              this.groupBy = "month";
+              this.groupByDisplay = "1 năm vừa qua";
+            },
+            fetchData: async function () {
+              const promise1 = window.apiClient.getSoldReport(this.startDate.getTime(), this.endDate.getTime());
+              const promise2 = window.apiClient.getImportReport(this.startDate.getTime(), this.endDate.getTime());
+              const [soldReports, importReports] = await Promise.all([promise1, promise2]);
+
+              return { soldReports, importReports };
+            },
+            redrawChart: async function () {
+              const { soldReports, importReports } = await this.fetchData();
+              const options = getMainChartOptions({
+                soldReports,
+                importReports,
+                groupBy: this.groupBy,
+                startDay: this.startDate,
+                endDay: this.endDate,
+              });
+              console.log(options);
+              this.chart?.destroy();
+              const chart = new ApexCharts(document.querySelector("#mainChart"), options);
+              chart.render();
+              this.chart = chart;
+            },
+          }));
+        });
+        function getDateDisplay(date, groupBy = "day") {
+          if (groupBy === "day") {
+            return date.toLocaleDateString("vi-VN");
+          }
+          return date.getMonth() + 1 + "/" + date.getFullYear();
+        }
+      </script>
+      <div
+        x-data="chartFilter"
+        x-init="setLast1Year()
+            setTimeout(() => {
+                redrawChart();
+            }, 1000);
+            $watch('showSold', () => {
+                chart.toggleSeries('Doanh thu bán hàng');
+            });
+            $watch('showImport', () => {
+                chart.toggleSeries('Chi phí nhập hàng');
+            });
+            "
+      >
+        <div class="border-2 py-4 border-dashed rounded-lg border-gray-300 min-h-[24rem] mb-4">
+          <div class="flex items-center justify-end gap-x-3 mb-3 mx-2">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" value="" class="sr-only peer" x-model="showSold" />
+              <div
+                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all peer-checked:bg-primary-600"
+              ></div>
+              <span class="ms-3 text-sm font-medium text-gray-900"> Hiển thị doanh thu bán hàng </span>
+            </label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" value="" class="sr-only peer" x-model="showImport" />
+              <div
+                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:w-5 after:h-5 after:transition-all peer-checked:bg-primary-600"
+              ></div>
+              <span class="ms-3 text-sm font-medium text-gray-900"> Hiển thị chi phí nhập hàng </span>
+            </label>
+
+            <button
+              id="dropdown-groupby-btn"
+              data-dropdown-toggle="dropdown-groupby"
+              class="text-black hover:bg-primary-100 focus:ring-4 focus:outline-none focus:ring-primary-100 font-medium rounded-lg text-sm px-3 py-1.5 text-center inline-flex items-center"
+              type="button"
+            >
+              <span class="text-gray-900" x-text="groupByDisplay"></span>
+              <svg
+                class="w-2.5 h-2.5 ms-3"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 10 6"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="m1 1 4 4 4-4"
+                />
+              </svg>
+            </button>
+
+            <!-- Dropdown menu -->
+            <div id="dropdown-groupby" class="z-50 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44">
+              <ul class="py-2 text-sm text-gray-700" aria-labelledby="dropdown-groupby-btn">
+                <li>
+                  <button class="block px-4 py-2 hover:bg-gray-100" @click="setLast1Week(); redrawChart()">
+                    <span class="text-gray-900">1 tuần vừa qua</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="block px-4 py-2 hover:bg-gray-100" @click="setLast1Month(); redrawChart()">
+                    <span class="text-gray-900">1 tháng vừa qua</span>
+                  </button>
+                </li>
+                <li>
+                  <button class="block px-4 py-2 hover:bg-gray-100" @click="setLast1Year(); redrawChart()">
+                    <span class="text-gray-900">1 năm vừa qua</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div id="mainChart"></div>
+        </div>
+        <div
+          class="border-2 p-2 border-dashed rounded-lg border-gray-300 bg-white mb-4"
+          x-data="{
+            queryData:{
+                startDay: null,
+                endDay: null,
+            },
+            groupReportBy: 'day',
+
+            sort:{
+                   sortDirection: 'desc',
+            sortField: 'date',
+            },
+            toggleSortDirection(){
+                this.sort.sortDirection = this.sort.sortDirection === 'desc' ? 'asc' : 'desc';
+            },
+            data: [],
+            dataGroupByMonth: [],
+            groupDataByMonth: function (){
+               let monthMap = new Map();
+                this.data.forEach(item => {
+                      let date = new Date(item.date);
+                      let month = date.getMonth();
+                      let year = date.getFullYear();
+                      let key = month + '/' + year;
+                      if(monthMap.has(key)){
+                            monthMap.set(key, {
+                            date: new Date(year, month),
+                             totalOrder: monthMap.get(key).totalOrder + item.totalOrder,
+                             totalQuantitySold: monthMap.get(key).totalQuantitySold + item.totalQuantitySold,
+                             totalRevenue: monthMap.get(key).totalRevenue + item.totalRevenue,
+                            })
+                      }else{
+                            monthMap.set(key, {
+                            date: new Date(year, month),
+                             totalOrder: item.totalOrder,
+                             totalQuantitySold: item.totalQuantitySold,
+                             totalRevenue: item.totalRevenue,
+                            })
+                      }
+                })
+                this.dataGroupByMonth = Array.from(monthMap.values());
+                console.log(this.dataGroupByMonth);
+            },
+            exportExcel:function (){
+                let data = this.groupReportBy === 'day' ? this.data : this.dataGroupByMonth;
+                let content=data.map(item => {
+                    const row = {};
+                    row['Thời gian'] = getDateDisplay(new Date(item.date), this.groupReportBy);
+                    row['Tổng số đơn'] = item.totalOrder;
+                    row['Tổng sản phẩm bán ra'] = item.totalQuantitySold;
+                    row['Doanh thu'] = item.totalRevenue;
+                    return row;
+                });
+                const worksheet = XLSX.utils.json_to_sheet(content);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+                XLSX.writeFile(workbook, 'report.xlsx');
+
+
+            },
+        }"
+          x-init="
+               const getData = async ()=>{
+                    data = await window.apiClient.getSoldReport(queryData.startDay?.getTime(), queryData.endDay?.getTime());
+                  groupDataByMonth();
+               }
+                getData();
+                $watch('queryData', () => {
+                    getData();
+                }, {deep: true});
+                $watch('sort', () => {
+                    const dataWillSort = groupReportBy === 'day' ? data : dataGroupByMonth;
+                    dataWillSort.sort((a, b) => {
+                        if(sort.sortDirection === 'desc'){
+                            return b[sort.sortField] - a[sort.sortField];
+                        }
+                        return a[sort.sortField] - b[sort.sortField];
+                    })
+                }, {deep: true});
+
+            "
+        >
+          <h2 class="text-lg mx-auto font-semibold text-gray-900">Báo cáo doanh thu bán hàng</h2>
+          <div class="flex border-b py-2 mb-2 border-gray-200 justify-end gap-x-2 items-center">
+            <div class="font-light">
+              <div date-rangepicker datepicker-format="dd/mm/yyyy" class="flex items-center datepicker">
+                <div class="relative">
+                  <input
+                    name="start"
+                    datepicker-format="dd/mm/yyyy"
+                    type="text"
+                    id="date-start"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                    placeholder="Từ ngày"
+                  />
+                </div>
+                <span class="mx-4 text-gray-500">đến</span>
+                <div class="relative">
+                  <input
+                    name="end"
+                    datepicker-format="dd/mm/yyyy"
+                    type="text"
+                    id="date-end"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                    placeholder="Đến ngày"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              @click="
+                        const startDay = document.querySelector('#date-start').value;
+                        const endDay = document.querySelector('#date-end').value;
+                        const startDayArr = startDay.split('/');
+                        const endDayArr = endDay.split('/');
+                        queryData.startDay = startDayArr.length === 3 ? new Date(startDayArr[2], startDayArr[1] - 1, startDayArr[0]) : null;
+                        queryData.endDay = endDayArr.length === 3 ? new Date(endDayArr[2], endDayArr[1] - 1, endDayArr[0]) : null;
+"
+              class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+              type="button"
+            >
+              Lọc
+            </button>
+
+            <!--                <button id="dropdownCheckboxButton" data-dropdown-toggle="dropdownDefaultCheckbox"-->
+            <!--                        class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center "-->
+            <!--                        type="button">-->
+            <!--                    Bao gồm-->
+            <!--                    <svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"-->
+            <!--                         viewBox="0 0 10 6">-->
+            <!--                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"-->
+            <!--                              d="m1 1 4 4 4-4"/>-->
+            <!--                    </svg>-->
+            <!--                </button>-->
+
+            <!-- Dropdown menu -->
+            <div
+              id="dropdownDefaultCheckbox"
+              class="z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow"
+            >
+              <ul class="p-3 space-y-3 text-sm text-gray-700" aria-labelledby="dropdownCheckboxButton">
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      id="completeCheckBox"
+                      type="checkbox"
+                      disabled
+                      checked
+                      class="w-4 cursor-not-allowed h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="completeCheckBox" class="ms-2 text-sm font-medium text-gray-900"> Đã hoàn thành </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      id="shippingCheckbox"
+                      type="checkbox"
+                      value=""
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="shippingCheckbox" class="ms-2 text-sm font-medium text-gray-900">
+                      Đang giao hàng
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      id="pendingCheckBox"
+                      type="checkbox"
+                      value=""
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="pendingCheckBox" class="ms-2 text-sm font-medium text-gray-900"> Đang chờ xử lý </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      id="processingCheckbox"
+                      type="checkbox"
+                      value=""
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="processingCheckbox" class="ms-2 text-sm font-medium text-gray-900"> Đang xử lý </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              id="dropdownRadioButton"
+              data-dropdown-toggle="dropdownDefaultRadio"
+              class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+              type="button"
+            >
+              Nhóm theo
+              <svg
+                class="w-2.5 h-2.5 ms-3"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 10 6"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="m1 1 4 4 4-4"
+                />
+              </svg>
+            </button>
+
+            <!-- Dropdown menu -->
+            <div id="dropdownDefaultRadio" class="z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow">
+              <ul class="p-3 space-y-3 text-sm text-gray-700" aria-labelledby="dropdownRadioButton">
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      id="default-radio-1"
+                      type="radio"
+                      value=""
+                      name="default-radio"
+                      x-on:click="groupReportBy = 'month'"
+                      x-bind:checked="groupReportBy === 'month'"
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="default-radio-1" class="ms-2 text-sm font-medium text-gray-900">
+                      Nhóm theo tháng
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      checked
+                      id="default-radio-2"
+                      type="radio"
+                      value=""
+                      name="default-radio"
+                      x-on:click="groupReportBy = 'day'"
+                      x-bind:checked="groupReportBy === 'day'"
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="default-radio-2" class="ms-2 text-sm font-medium text-gray-900"> Nhóm theo ngày </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <button
+              @click="exportExcel()"
+              type="button"
+              class="focus:outline-none text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-200 font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Xuất excel
+            </button>
+          </div>
+
+          <div
+            class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-w-2 scrolling-touch"
+            style="height: 70vh"
+          >
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+              <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'date'"
+                    >
+                      Thời gian
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'totalOrder'"
+                    >
+                      Tổng số đơn
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3"
+                    @click="toggleSortDirection(); sort.sortField = 'totalQuantitySold'"
+                  >
+                    <div class="flex items-center cursor-pointer">
+                      Tổng sản phẩm bán ra
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'totalRevenue'"
+                    >
+                      Doanh thu
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template
+                  x-for="item in (groupReportBy === 'day' ? data : dataGroupByMonth)"
+                  :key="item.date.getTime()"
+                >
+                  :key="item.date">
+                  <tr class="bg-white border-b">
+                    <th
+                      scope="row"
+                      class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
+                      x-text="getDateDisplay(new Date(item.date), groupReportBy)"
+                    ></th>
+                    <td class="px-6 py-4" x-text="item.totalOrder"></td>
+                    <td class="px-6 py-4" x-text="item.totalQuantitySold"></td>
+                    <td class="px-6 py-4" x-text="VND.format(item.totalRevenue)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div
+          class="border-2 p-2 border-dashed rounded-lg border-gray-300 bg-white mb-4"
+          x-data="{
+            queryData:{
+                startDay: null,
+                endDay: null,
+            },
+            groupReportBy: 'day',
+             sort:{
+                   sortDirection: 'desc',
+            sortField: 'date',
+            },
+            toggleSortDirection(){
+                this.sort.sortDirection = this.sort.sortDirection === 'desc' ? 'asc' : 'desc';
+            },
+            data: [],
+            dataGroupByMonth: [],
+            groupDataByMonth: function (){
+               let monthMap = new Map();
+                this.data.forEach(item => {
+                      let date = new Date(item.date);
+                      let month = date.getMonth();
+                      let year = date.getFullYear();
+                      let key = month + '/' + year;
+                      if(monthMap.has(key)){
+                            monthMap.set(key, {
+                            date: new Date(year, month),
+                             totalOrder: monthMap.get(key).totalOrder + item.totalOrder,
+                             totalQuantitySold: monthMap.get(key).totalQuantitySold + item.totalQuantitySold,
+                             totalRevenue: monthMap.get(key).totalRevenue + item.totalRevenue,
+                            })
+                      }else{
+                            monthMap.set(key, {
+                            date: new Date(year, month),
+                             totalOrder: item.totalOrder,
+                             totalQuantitySold: item.totalQuantitySold,
+                             totalRevenue: item.totalRevenue,
+                            })
+                      }
+                })
+                this.dataGroupByMonth = Array.from(monthMap.values());
+            },
+            exportExcel:function (){
+                let data = this.groupReportBy === 'day' ? this.data : this.dataGroupByMonth;
+                let content=data.map(item => {
+                    const row = {};
+                    row['Thời gian'] = getDateDisplay(new Date(item.date), this.groupReportBy);
+                    row['Tổng số đơn nhập'] = item.totalImport;
+                    row['Tổng sản phẩm nhập'] = item.totalQuantityImport;
+                    row['Chi phí nhập hàng'] = item.totalCost;
+                    return row;
+                });
+                const worksheet = XLSX.utils.json_to_sheet(content);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+                XLSX.writeFile(workbook, 'report.xlsx');
+
+
+            },
+        }"
+          x-init="
+               const getData = async ()=>{
+                    data = await window.apiClient.getImportReport(queryData.startDay?.getTime(), queryData.endDay?.getTime());
+                  groupDataByMonth();
+               }
+                getData();
+                $watch('queryData', () => {
+                    getData();
+                }, {deep: true});
+$watch('sort', () => {
+                    const dataWillSort = groupReportBy === 'day' ? data : dataGroupByMonth;
+                    dataWillSort.sort((a, b) => {
+                        if(sort.sortDirection === 'desc'){
+                            return b[sort.sortField] - a[sort.sortField];
+                        }
+                        return a[sort.sortField] - b[sort.sortField];
+                    })
+                }, {deep: true});
+
+
+            "
+        >
+          <h2 class="text-lg mx-auto font-semibold text-gray-900">Báo cáo chi phí nhập hàng</h2>
+          <div class="flex border-b py-2 mb-2 border-gray-200 justify-end gap-x-2 items-center">
+            <div class="font-light">
+              <div date-rangepicker datepicker-format="dd/mm/yyyy" class="flex items-center datepicker">
+                <div class="relative">
+                  <input
+                    name="start"
+                    datepicker-format="dd/mm/yyyy"
+                    type="text"
+                    id="date-start-import"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                    placeholder="Từ ngày"
+                  />
+                </div>
+                <span class="mx-4 text-gray-500">đến</span>
+                <div class="relative">
+                  <input
+                    name="end"
+                    datepicker-format="dd/mm/yyyy"
+                    type="text"
+                    id="date-end-import"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                    placeholder="Đến ngày"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              @click="queryData.startDay = new Date(document.querySelector('#date-start-import').value); queryData.endDay = new Date(document.querySelector('#date-end-import').value)"
+              class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+              type="button"
+            >
+              Lọc
+            </button>
+
+            <button
+              id="dropdownRadioButton-import"
+              data-dropdown-toggle="dropdownDefaultRadio-import"
+              class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center"
+              type="button"
+            >
+              Nhóm theo
+              <svg
+                class="w-2.5 h-2.5 ms-3"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 10 6"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="m1 1 4 4 4-4"
+                />
+              </svg>
+            </button>
+
+            <!-- Dropdown menu -->
+            <div
+              id="dropdownDefaultRadio-import"
+              class="z-10 hidden w-48 bg-white divide-y divide-gray-100 rounded-lg shadow"
+            >
+              <ul class="p-3 space-y-3 text-sm text-gray-700" aria-labelledby="dropdownRadioButton-import">
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      type="radio"
+                      value=""
+                      name="default-radio"
+                      x-on:click="groupReportBy = 'month'"
+                      x-bind:checked="groupReportBy === 'month'"
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="default-radio-1" class="ms-2 text-sm font-medium text-gray-900">
+                      Nhóm theo tháng
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <div class="flex items-center">
+                    <input
+                      checked
+                      type="radio"
+                      value=""
+                      name="default-radio"
+                      x-on:click="groupReportBy = 'day'"
+                      x-bind:checked="groupReportBy === 'day'"
+                      class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2"
+                    />
+                    <label for="default-radio-2" class="ms-2 text-sm font-medium text-gray-900"> Nhóm theo ngày </label>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <button
+              @click="exportExcel()"
+              type="button"
+              class="focus:outline-none text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-200 font-medium rounded-lg text-sm px-5 py-2.5"
+            >
+              Xuất excel
+            </button>
+          </div>
+
+          <div
+            class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-scroll scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-w-2 scrolling-touch"
+            style="height: 70vh"
+          >
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+              <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'date'"
+                    >
+                      Thời gian
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'totalImport'"
+                    >
+                      Tổng số đơn
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'totalQuantityImport'"
+                    >
+                      Tổng sản phẩm bán ra
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-6 py-3">
+                    <div
+                      class="flex items-center cursor-pointer"
+                      @click="toggleSortDirection(); sort.sortField = 'totalCost'"
+                    >
+                      Doanh thu
+                      <a href="#"
+                        ><svg
+                          class="w-3 h-3 ms-1.5"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                          /></svg
+                      ></a>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template
+                  x-for="item in (groupReportBy === 'day' ? data : dataGroupByMonth)"
+                  :key="item.date.getTime()"
+                >
+                  :key="item.date">
+                  <tr class="bg-white border-b">
+                    <th
+                      scope="row"
+                      class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
+                      x-text="getDateDisplay(new Date(item.date), groupReportBy)"
+                    ></th>
+                    <td class="px-6 py-4" x-text="item.totalImport"></td>
+                    <td class="px-6 py-4" x-text="item.totalQuantityImport"></td>
+                    <td class="px-6 py-4" x-text="VND.format(item.totalCost)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

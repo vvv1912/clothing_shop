@@ -1,0 +1,560 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        layout:decorate="layout"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Mua ngay</title>
+</head>
+<body>
+<div
+        layout:fragment="content"
+        th:with="currentUser=${#authentication.principal}"
+        class="max-w-screen-xl px-3 mx-auto"
+>
+    <script src="/js/addressUtil.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        //principal.address
+        const myAddress = /*[[${currentUser=="anonymousUser"?null:currentUser.address}]]*/ null;
+        const totalValue = /*[[${orderModel.getTotalPrice()}]]*/ 0;
+        const myFirstName = /*[[${currentUser=="anonymousUser"?null:currentUser.firstName}]]*/ null;
+        const myLastName = /*[[${currentUser=="anonymousUser"?null:currentUser.lastName}]]*/ null;
+        const myPhoneNumber = /*[[${currentUser=="anonymousUser"?null:currentUser.phoneNumber}]]*/ null;
+        const myEmail = /*[[${currentUser=="anonymousUser"?null:currentUser.email}]]*/ null;
+        const myFullName = myFirstName + " " + myLastName;
+
+        /*]]>*/
+        // check isNotUseDefaultAddress in query
+        const urlParams = new URLSearchParams(window.location.search);
+        const isNotUseDefaultAddress = urlParams.get('isNotUseDefaultAddress');
+        if (myAddress && !isNotUseDefaultAddress) {
+            setTimeout(() => {
+                document.getElementById("use-my-address-lb").click();
+            }, 1000);
+        }
+
+        function calculateReducePrice(promotion) {
+            if (!promotion) {
+                return 0;
+            }
+            const discount = promotion.discount;
+            const price = totalValue;
+            const max = promotion.maxValue;
+            const type = promotion.type;
+            if (type === "PERCENTAGE") {
+                const reduce = (price * discount) / 100;
+                if (reduce > max) {
+                    return max;
+                } else {
+                    return reduce;
+                }
+            } else {
+                if (discount > totalValue) {
+                    return totalValue;
+                } else {
+                    return discount;
+                }
+            }
+        }
+    </script>
+    <section class="my-5" x-data="addressPicker">
+
+
+        <form
+                id="commandForm" th:method="post" th:action="@{/order/create}" th:object="${command}"
+                class=""
+                x-data="{
+         listShipService:null,
+         isLoading: false,
+         selectedShipServiceId: null,
+            promotion: null,
+            fullSelectedAddress: '',
+                     isUseMyAddress: false,
+
+        getSelectedShipService: function (){
+
+            return this.listShipService?.find(p=>p.id == this.selectedShipServiceId);
+        },
+         onShipServiceChange: function (e) {
+             if(e.target.checked){
+             console.log(e.target.value);
+                    this.selectedShipServiceId = e.target.value;
+             }
+         },
+         getShipService: function (myAddressPr=null) {
+                if(!this.isUseMyAddress){
+                   if(!this.selectedProvince || !this.selectedDistrict || !this.selectedWard || !this.detailAddress){
+                    $store.toast.add('error','Lỗi','Vui lòng nhập đầy đủ thông tin địa chỉ');
+                    return;
+                }
+                }
+                if(!this.isUseMyAddress){
+                         this.fullSelectedAddress = this.getfullAddress();
+                }
+                this.isLoading = true;
+                window.apiClient.getDeliveryOption({
+                toAddress: this.isUseMyAddress?myAddressPr:this.fullSelectedAddress,
+                 orderValue: totalValue,
+                }).then(p=> {
+                this.listShipService = [...p];
+                console.log(p);
+                }).finally(()=> this.isLoading = false);
+                console.log(this.fullSelectedAddress);
+        },
+        handleSubmit: function () {
+           const commandForm = document.getElementById('commandForm');
+            if (!this.selectedShipServiceId) {
+                $store.toast.add('error', 'Lỗi', 'Vui lòng chọn dịch vụ vận chuyển');
+                return false;
+            }
+            commandForm.shipServiceId.value = this.selectedShipServiceId;
+
+            const checkedPayment = document.querySelector('input[name=payment-method]:checked');
+            if (!checkedPayment) {
+                $store.toast.add('error', 'Lỗi', 'Vui lòng chọn phương thức thanh toán');
+                return false;
+            }
+            commandForm.address.value = this.isUseMyAddress?myAddress:this.fullSelectedAddress;
+            commandForm.paymentMethod.value = checkedPayment.value;
+            commandForm.note.value = ''
+            commandForm.promotionCode.value = this.promotion?.code ||'';
+
+
+            return true;
+            }
+        }"
+                x-on:submit="
+          if(!handleSubmit()){
+          $event.preventDefault();
+          }
+    "
+        >
+            <th:block th:each="item, iterStat : *{orderItems}">
+                <input class="hidden" hidden="hidden" th:field="*{orderItems[__${iterStat.index}__].productOptionId}"/>
+
+                <input class="hidden" hidden="hidden" th:field="*{orderItems[__${iterStat.index}__].quantity}"/>
+            </th:block>
+            <div class="flex flex-col gap-y-1">
+                <div>
+                    <h1 class="text-3xl py-4 font-bold leading-tight tracking-tight text-gray-900">Tiến hành đặt
+                        hàng</h1>
+                </div>
+
+                <div
+                        class="grid grid-cols-1 lg:grid-cols-3 gap-8"
+                        x-data="{
+
+                }"
+                >
+                    <div class="col-span-1 order-1 lg:order-2">
+                        <div class="flex flex-col gap-y-2">
+                            <div class="bg-gray-100 shadow p-6 rounded-lg">
+                                <h3 class="text-2xl font-bold leading-tight tracking-tight text-gray-900">Mã giảm
+                                    giá</h3>
+
+                                <div
+                                        class="flex p-4 gap-x-2 items-center"
+                                        :class="{'hidden':promotion}"
+                                        x-data="{
+                                    loadingPromotion: false,
+                                    checkPromotion:function (){
+                                        if(!this.code.trim()){
+                                            $store.toast.add('error','Lỗi','Vui lòng nhập mã giảm giá');
+                                            return;
+                                        }
+                                        this.loadingPromotion = true;
+                                        window.apiClient.checkPromotion(this.code.trim(),totalValue).then(p=>{
+                                            this.promotion = p;
+                                        }).catch(e=>{
+                                            $store.toast.add('error','Lỗi',e.response.error);
+                                        }).finally(()=> this.loadingPromotion = false);
+
+                                    },
+
+                                    code: ''
+                                }"
+                                >
+                                    <div class="grow">
+                                        <input
+                                                type="text"
+                                                id="promotion"
+                                                x-model="code"
+                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                placeholder="Nhập mã giảm giá"
+                                        />
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button
+                                                type="button"
+                                                :disabled="loadingPromotion"
+                                                @click="checkPromotion()"
+                                                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none"
+                                        >
+                                            Áp dụng
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                        class="flex m-2 p-4 rounded-md bg-gray-200 gap-y-1 items-center"
+                                        :class="{'hidden':!promotion}"
+                                >
+                                    <div>
+                                        <h3
+                                                class="text-xl grow font-bold leading-tight tracking-tight text-gray-900"
+                                                x-text="promotion?.name"
+                                        ></h3>
+                                        <p class="text-sm text-gray-500 mt-2" x-text="promotion?.description"></p>
+                                    </div>
+                                    <button
+                                            type="button"
+                                            @click="promotion = null"
+                                            class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none"
+                                    >
+                                        Xóa
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-100 shadow p-6 rounded-lg">
+                                <h3 class="text-2xl font-bold leading-tight tracking-tight text-gray-900">Chi tiết đơn
+                                    hàng</h3>
+
+                                <div class="pc wb">
+                                    <ul role="list" class="divide-y divide-gray-200">
+                                        <th:block th:each="item : ${orderModel.getOrderItems()}">
+                                            <li class="flex py-6">
+                                                <div class="h-28 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                                                    <img
+                                                            th:src="${item.product.displayImage}"
+                                                            th:alt="${item.product.name}"
+                                                            class="h-full aspect-[3/4] object-cover object-center"
+                                                    />
+                                                </div>
+
+                                                <div class="ml-4 flex flex-1 flex-col">
+                                                    <div>
+                                                        <div class="flex justify-between text-base font-medium text-gray-900">
+                                                            <h3>
+                                                                <span th:text="${item.product.name}"> </span>
+                                                            </h3>
+                                                            <p class="ml-4"
+                                                               th:text="${item.product.getVietnamesePrice()}"></p>
+                                                        </div>
+                                                        <p class="mt-1 text-sm text-gray-500">
+                                                            <span th:text="${item.color.name}"> </span>
+                                                            <span>, </span>
+                                                            <span th:text="${item.size}"> </span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="flex flex-1 items-end justify-between text-sm">
+                                                        <p class="text-gray-500" th:inline="text"><b>Số lượng</b>: x
+                                                            [[${item.quantity}]]</p>
+
+                                                        <div class="flex">
+                                                            <p class="text-gray-500" th:inline="text">
+                                                                <b>Thành tiền</b>: [[${item.getFinalPriceDisplay()}]]
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </th:block>
+                                    </ul>
+                                </div>
+
+                                <div class="border-t border-primary-500 py-4">
+                                    <div class="flex flex-col gap-y-4 text-lg">
+                                        <div class="flex justify-between">
+                                            <p class="text-gray-600">Tổng giá trị đơn hàng</p>
+                                            <p class="text-gray-600"
+                                               th:text="${orderModel.getVietnameseTotalPrice()}"></p>
+                                        </div>
+
+                                        <div class="flex justify-between">
+                                            <p class="text-gray-600">Giảm giá</p>
+                                            <p class="text-gray-600"
+                                               x-text="VND.format(calculateReducePrice(promotion))"></p>
+                                        </div>
+
+                                        <div class="flex justify-between">
+                                            <p class="text-gray-600">Phí vận chuyển</p>
+                                            <p class="text-gray-600"
+                                               x-text="VND.format(getSelectedShipService()?.totalFree??0)"></p>
+                                        </div>
+
+                                        <div class="flex justify-between font-semibold text-xl">
+                                            <p class="ci ji ri">Thành tiền</p>
+                                            <p
+                                                    class="ci ji ai ri"
+                                                    x-text="VND.format(totalValue - calculateReducePrice(promotion) + (getSelectedShipService()?.totalFree??0))"
+                                            ></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex w-full mt-2 justify-center">
+                                    <button
+
+                                            type="submit"
+
+
+                                            class="text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 font-medium rounded-md text-xl px-5 py-2.5 text-center mb-2"
+                                    >
+                                        Tiến hành đặt hàng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                            class="col-span-1 border-t py-2 order-2 lg:order-1 lg:col-span-2"
+                            x-init="
+                        $watch('isUseMyAddress', value => {
+                            if(value){
+                                if(myAddress){
+                                commandForm.customerName.value = isUseMyAddress? myFullName:document.getElementById('name').value;
+             commandForm.phoneNumber.value =  isUseMyAddress? myPhoneNumber:document.getElementById('phone-number').value;
+             commandForm.address.value =  isUseMyAddress?myAddress:fullSelectedAddress;
+             commandForm.note.value = ''
+             commandForm.email.value =  isUseMyAddress?myEmail:document.getElementById('email').value;
+                                    getShipService(myAddress);
+                                }
+                                else{
+                                    $store.toast.add('error','Lỗi','Bạn chưa có địa chỉ mặc định');
+                                    isUseMyAddress = false;
+                                }
+                            }else {
+                             listShipService = null;
+                            }
+                        })
+"
+                    >
+                        <div class="pc">
+                            <div class="if kf kb">
+                                <div class="p-2">
+                                    <div class="flex gap-x-6">
+                                        <h2 class="text-2xl font-bold leading-tight tracking-tight text-gray-900">
+                                            Thông tin giao hàng
+                                        </h2>
+                                        <div class="flex items-center">
+                                            <input
+                                                    id="use-my-address"
+                                                    type="checkbox"
+                                                    value=""
+                                                    x-model="isUseMyAddress"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                            <label
+                                                    for="use-my-address"
+                                                    id="use-my-address-lb"
+                                                    class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+                                            >
+                                                Sử dụng địa chỉ của tôi
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <input hidden="hidden" type="text" th:field="*{address}" name="address"/>
+
+                                    <input hidden="hidden" type="text" th:field="*{note}"/>
+                                    <input hidden="hidden" type="text" th:field="*{promotionCode}"
+                                           name="promotionCode"/>
+                                    <input hidden="hidden" type="text" th:field="*{paymentMethod}"
+                                           name="paymentMethod"/>
+                                    <input hidden="hidden" type="text" th:field="*{shipServiceId}"
+                                           name="shipServiceId"/>
+
+                                    <div x-show="!isUseMyAddress">
+                                        <div class="my-6">
+                                            <label for="name"
+                                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                Họ và tên người nhận
+                                            </label>
+                                            <input
+                                                    placeholder="Họ và tên người nhận"
+                                                    type="text"
+                                                    id="name"
+                                                    required
+                                                    th:field="*{customerName}" name="customerName"
+                                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-red-600 "
+                                               th:if="${#fields.hasErrors('customerName')}">
+                                                <span th:errors="*{customerName}"> </span>
+
+                                            </p>
+                                        </div>
+                                        <div class="my-6">
+                                            <label for="phone-number"
+                                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                Số điện thoại
+                                            </label>
+                                            <input
+                                                    placeholder="Số điện thoại người nhận"
+                                                    type="tel"
+                                                    required
+                                                    id="phone-number"
+                                                    th:field="*{phoneNumber}" name="phoneNumber"
+                                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-red-600 "
+                                            >
+                                                <span th:errors="*{phoneNumber}"> </span>
+                                            </p>
+
+                                        </div>
+                                        <div class="my-6">
+                                            <label for="email"
+                                                   class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                                Địa chỉ email
+                                            </label>
+                                            <input
+                                                    placeholder="Địa chỉ email nhận thông báo"
+                                                    type="email"
+                                                    id="email"
+                                                    required
+                                                    th:field="*{email}" name="email"
+                                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-red-600 ">
+                                                <span th:errors="*{email}"> </span>
+                                            </p>
+                                        </div>
+                                        <div th:replace="~{components/AddressPicker::addressPicker()} "></div>
+                                        <p class="mt-2 text-sm text-red-600 ">
+                                            <span th:errors="*{address}"> </span>
+                                        </p>
+                                        <div class="flex w-full mt-4 justify-end">
+                                            <button
+                                                    type="button"
+                                                    @click="getShipService()"
+                                                    class="text-white bg-primary-700 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 font-medium rounded-md text-sm px-3 py-2.5 text-center mb-2"
+                                            >
+                                                Xác nhận địa chỉ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-x-2 mt-5 border-t py-2">
+                                    <h2 class="text-2xl font-bold leading-tight tracking-tight text-gray-900">
+                                        Phương thức vận chuyển
+                                    </h2>
+                                    <p class="text-sm mf-2 text-gray-500">
+                                        Vận chuyển đến <span
+                                            x-text="isUseMyAddress?myAddress:fullSelectedAddress"> </span>
+                                    </p>
+                                    <div class="flex justify-center p-10"
+                                         x-show="listShipService && listShipService.length == 0">
+                                        <span class="text-gray-500"> Không có dịch vụ vận chuyển phù hợp </span>
+                                    </div>
+                                    <div class="flex justify-center p-10" x-show="isLoading">
+                                        <div role="status">
+                                            <svg
+                                                    aria-hidden="true"
+                                                    class="w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                                                    viewBox="0 0 100 101"
+                                                    fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                                <path
+                                                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                        fill="currentColor"
+                                                />
+                                                <path
+                                                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                        fill="currentFill"
+                                                />
+                                            </svg>
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col pt-4 pl-4 gap-y-4" x-show="listShipService">
+                                        <template x-for="service in listShipService??[]" :key="service.id">
+                                            <div class="flex items-center gap-x-2 p-4 shadow-sm">
+                                                <input
+                                                        :id="service.id"
+                                                        type="radio"
+                                                        name="ship-service"
+                                                        :value="service.id"
+                                                        @change="onShipServiceChange($event)"
+                                                        class="h-4 w-4 border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600"
+                                                />
+
+                                                <label :for="service.id" class="flex pl-2 flex-col gap-y-0">
+                                                <span class="font-medium text-gray-900"
+                                                      x-text="service.carrierName"> </span>
+                                                    <div>
+                                                        <span class="font-semibold"> Loại: </span>
+                                                        <span x-text="service.service"> </span>
+                                                    </div>
+                                                    <div>
+                                                        <span x-text="service.expected"> </span>
+                                                    </div>
+                                                    <div>
+                                                        <span class="font-semibold"> Phí: </span>
+                                                        <span x-text="VND.format(service.totalFree)"> </span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-x-2 border-t py-2">
+                                    <h2 class="text-2xl font-bold leading-tight tracking-tight text-gray-900">
+                                        Phương thức thanh toán
+                                    </h2>
+                                    <div class="flex flex-col pt-4 pl-4 gap-y-4">
+                                        <div class="flex items-center">
+                                            <input
+                                                    id="cod"
+                                                    checked
+                                                    type="radio"
+                                                    value="COD"
+                                                    name="payment-method"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                            <label for="cod" class="ml-2 font-medium text-gray-900 dark:text-gray-300">
+                                                Thanh toán khi nhận hàng (COD)
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input
+                                                    id="atm"
+                                                    type="radio"
+                                                    value="MOMO_ATM"
+                                                    name="payment-method"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                            <label for="atm" class="ml-2 font-medium text-gray-900 dark:text-gray-300">
+                                                Thanh toán qua thẻ ngân hàng
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input
+                                                    id="momo"
+                                                    type="radio"
+                                                    value="MOMO_QR"
+                                                    name="payment-method"
+                                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                            />
+                                            <label for="momo" class="ml-2 font-medium text-gray-900 dark:text-gray-300">
+                                                Thanh toán qua ví điện tử momo
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </section>
+</div>
+</body>
+</html>

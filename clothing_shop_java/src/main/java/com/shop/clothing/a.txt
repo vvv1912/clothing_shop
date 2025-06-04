@@ -1,0 +1,150 @@
+Folder PATH listing
+Volume serial number is A24D-1286
+E:.
+├───auth
+│   ├───commands
+│   │   ├───forgotPassword
+│   │   ├───login
+│   │   ├───permission
+│   │   │   ├───createPermission
+│   │   │   └───updatePermissionCommand
+│   │   ├───register
+│   │   ├───resetPassword
+│   │   └───role
+│   │       ├───addPermissionToRole
+│   │       ├───createRole
+│   │       └───updateRole
+│   ├───Dto
+│   ├───entity
+│   ├───JWT
+│   ├───queries
+│   └───repository
+├───cart
+│   ├───command
+│   │   ├───addToCart
+│   │   ├───clearCart
+│   │   ├───removeItem
+│   │   ├───removeItems
+│   │   └───updateCartItemQuantity
+│   ├───dto
+│   ├───endpoint
+│   └───query
+│       └───getMyCart
+├───category
+│   ├───command
+│   │   ├───createCategory
+│   │   ├───deleteCategory
+│   │   └───updateCategory
+│   ├───endpoint
+│   └───query
+│       ├───getAllCategories
+│       ├───getAllCategoriesGroupByParentQuery
+│       └───getCategoryById
+├───common
+│   ├───Cqrs
+│   │   └───Impl
+│   ├───dto
+│   ├───util
+│   └───validation
+├───config
+│   └───startup
+├───controller
+│   ├───admin
+│   └───shop
+├───delivery
+│   ├───command
+│   ├───config
+│   ├───dto
+│   ├───endpoint
+│   ├───goShip
+│   └───query
+│       ├───getDeliveryFee
+│       └───getDeliveryOption
+├───file
+│   ├───command
+│   │   ├───uploadFile
+│   │   └───uploadFiles
+│   └───endpoint
+├───mail
+├───order
+│   ├───command
+│   │   ├───cancelOrder
+│   │   ├───createOrder
+│   │   └───updateStatus
+│   ├───dto
+│   ├───endpoint
+│   ├───entity
+│   │   └───enums
+│   ├───query
+│   │   ├───getAllOrders
+│   │   ├───getMyOrders
+│   │   └───getOrderById
+│   └───repository
+├───payment
+│   ├───command
+│   │   ├───createPayment
+│   │   ├───updatePayment
+│   │   └───updatePaymentStatus
+│   ├───dto
+│   ├───endpoint
+│   ├───entity
+│   │   └───enums
+│   ├───momo
+│   │   └───endpoint
+│   ├───repository
+│   └───strategy
+├───product
+│   ├───command
+│   │   ├───createColor
+│   │   ├───createProduct
+│   │   ├───createProductImage
+│   │   ├───createProductOption
+│   │   ├───deleteColor
+│   │   ├───deleteProduct
+│   │   ├───deleteProductImage
+│   │   ├───deleteProductOption
+│   │   ├───updateProduct
+│   │   └───updateProductOption
+│   ├───dto
+│   ├───endpoint
+│   ├───entity
+│   ├───query
+│   │   ├───advanceSearchProduct
+│   │   ├───getAllColors
+│   │   ├───getAllProducts
+│   │   ├───getProductById
+│   │   ├───getProductBySlug
+│   │   ├───getProductOptionById
+│   │   └───getProductOptionsByListId
+│   └───repository
+├───promotion
+│   ├───endpoint
+│   ├───Query
+│   │   └───checkPromotion
+│   └───repository
+├───rating
+├───scheduleTask
+├───shop
+│   ├───command
+│   └───endpoint
+├───stockReceipt
+│   ├───command
+│   │   ├───stockReceipt
+│   │   │   └───createStockReceipt
+│   │   └───supplier
+│   │       ├───createSupplier
+│   │       ├───deleteSupplier
+│   │       └───updateSupplier
+│   ├───endpoint
+│   ├───entity
+│   └───repository
+└───user
+    ├───command
+    │   ├───updateAvatar
+    │   ├───updatePassword
+    │   └───updateProfile
+    ├───endpoint
+    ├───entity
+    ├───query
+    │   └───getMyProfile
+    └───repository

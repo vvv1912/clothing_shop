@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title th:remove="all">Template for HTML email with inline image</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body>
+    <div>
+      <h1>Đơn hàng của bạn đã được đặt thành công</h1>
+      <h2>Thông tin đơn hàng</h2>
+      <p>Mã đơn hàng: <strong th:text="${order.orderId}"></strong></p>
+      <p>Ngày đặt hàng: <strong th:text="${order.createdAt}"></strong></p>
+      <p>Người nhận: <strong th:text="${order.customerName}"></strong></p>
+      <p>Địa chỉ: <strong th:text="${order.address}"></strong></p>
+      <p>Số điện thoại: <strong th:text="${order.phoneNumber}"></strong></p>
+      <p>Email: <strong th:text="${order.email}"></strong></p>
+      <p>Phương thức thanh toán: <strong th:text="${order.paymentMethod}"></strong></p>
+      <p>Tổng tiền: <strong th:text="${order.totalAmount}"></strong></p>
+    </div>
+  </body>
+</html>

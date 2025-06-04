@@ -1,0 +1,63 @@
+<th:block th:fragment="paymentStatusBadge(paymentStatus)">
+  <th:block th:switch="${paymentStatus}">
+    <span
+      th:case="'PENDING'"
+      class="px-2 inline-flex leading-6 font-semibold rounded-full bg-yellow-200 text-yellow-800"
+    >
+      Chờ thanh toán
+    </span>
+    <span th:case="'PAID'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-green-200 text-green-800">
+      Đã thanh toán
+    </span>
+    <span th:case="'CANCELLED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-red-200 text-red-800">
+      Đã hủy
+    </span>
+    <span th:case="'REFUNDED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-blue-200 text-blue-800">
+      Đã hoàn tiền
+    </span>
+    <span th:case="'FAILED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-red-200 text-red-800">
+      Thất bại
+    </span>
+    <span th:case="'WAITING_FOR_REFUND'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-yellow-200 text-yellow-800">
+        Chờ hoàn tiền
+    </span>
+  </th:block>
+</th:block>
+
+<th:block th:fragment="orderStatusBadge(orderStatus)">
+  <th:block th:switch="${orderStatus}">
+    <span
+      th:case="'PENDING'"
+      class="px-2 inline-flex leading-6 font-semibold rounded-full bg-yellow-200 text-yellow-800"
+    >
+      Chờ xử lý
+    </span>
+    <span
+      th:case="'PROCESSING'"
+      class="px-2 inline-flex leading-6 font-semibold rounded-full bg-blue-200 text-blue-800"
+    >
+      Đang xử lý
+    </span>
+    <span
+      th:case="'SHIPPING'"
+      class="px-2 inline-flex leading-6 font-semibold rounded-full bg-purple-200 text-purple-800"
+    >
+      Đang giao hàng
+    </span>
+    <span
+      th:case="'DELIVERED'"
+      class="px-2 inline-flex leading-6 font-semibold rounded-full bg-green-200 text-green-800"
+    >
+      Đã giao hàng
+    </span>
+    <span th:case="'CANCELLED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-red-200 text-red-800">
+      Đã hủy
+    </span>
+    <span th:case="'RETURNED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-red-200 text-red-800">
+      Đã trả hàng
+    </span>
+    <span th:case="'REFUNDED'" class="px-2 inline-flex leading-6 font-semibold rounded-full bg-blue-200 text-blue-800">
+      Đã hoàn tiền
+    </span>
+  </th:block>
+</th:block>

@@ -1,0 +1,69 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  layout:decorate="layout"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cửa hàng bán quần áo</title>
+  </head>
+
+  <body>
+    <div layout:fragment="content" class="max-w-screen-xl mx-auto" th:with="clientUtil=${@clientUtil}">
+      <script src="/js/product.js"></script>
+      <div
+        th:if="${notification}"
+        th:text="${notification.title}"
+        class="text-2xl font-bold text-center text-gray-900 dark:text-white"
+      ></div>
+      <div class="w-full">
+        <img
+          class="w-full h-auto cursor-pointer"
+          src="https://cdn.discordapp.com/attachments/745580405088059442/1160862284147601478/1010HP_DESK.png?ex=65363440&is=6523bf40&hm=62ce12a4c524823b6c55f258343528e71ed00f48500d4173bda362ba6bd08f84&"
+          alt="banner"
+        />
+      </div>
+      <div
+        class="my-12 flex flex-col gap-y-2"
+        x-data="{
+                newProducts:[]
+            }"
+        x-init="newProducts = [...products];console.log(products)"
+      >
+        <h2 class="uppercase font-bold text-3xl my-3 text-center">Hàng bán chạy</h2>
+        <div class="grid grid-cols-5 gap-x-3">
+          <th:block th:each="i : ${#numbers.sequence(1,5)}">
+            <a th:replace="~{components/ProductCard :: productCard(product=${hotProducts.get(i)})}"></a>
+          </th:block>
+        </div>
+        <div class="flex justify-center my-3">
+          <a
+                  th:href="@{/product/search?sortField=product.totalSold&sortDir=desc}"
+            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg px-5 py-2.5 mr-2 mb-2"
+          >
+            Xem thêm
+          </a>
+        </div>
+      </div>
+      <div class="my-12 mt-6 pt-6 border-t border-primary-200 flex flex-col gap-y-2">
+        <h2 class="uppercase font-bold text-3xl my-3 text-center">Hàng mới về</h2>
+        <div class="grid grid-cols-5 gap-x-3">
+          <th:block th:each="i : ${#numbers.sequence(1,5)}">
+            <a th:replace="~{components/ProductCard :: productCard(product=${newProducts.get(i)})}"></a>
+          </th:block>
+        </div>
+        <div class="flex justify-center my-3">
+          <a
+                  th:href="@{/product/search?sortField=product.createdDate&sortDir=desc}"
+
+                  class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg px-5 py-2.5 mr-2 mb-2"
+          >
+            Xem thêm
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>
+        Xem chi tiết phiếu nhập
+    </title>
+</head>
+<body>
+<div layout:fragment="content">
+    <section
+            class="bg-gray-50 p-3 sm:p-5 antialiased">
+        <div class="mx-auto max-w-screen-2xl px-4 lg:px-12">
+            <h2 class="text-2xl mb-3 font-bold text-gray-900 dark:text-white">
+                Tạo phiếu nhập mới
+            </h2>
+            <div class="bg-white p-4 relative shadow-md sm:rounded-lg overflow-hidden">
+                <div class="flex flex-col gap-y-2">
+
+
+                    <div>
+                        <label for="first_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Nhà cung cấp
+                        </label>
+                        <input type="text" id="first_name"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                               th:value="${stockReceipt.supplier.name}"
+                               readonly disabled
+                               placeholder="Nhập tên nhà cung cấp">
+                    </div>
+                    <label for="note" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Ghi chú
+                    </label>
+                    <textarea id="note" rows="2"
+                              readonly
+                              th:value="${stockReceipt.getNote()}"
+                              contenteditable="false"
+                              class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                    th:placeholder="${stockReceipt.getNote()}"
+                    ></textarea>
+
+                </div>
+            </div>
+            <script th:inline="javascript">
+                const items = [[${stockReceipt.stockReceiptItems}]];
+            </script>
+            <div class="bg-white p-4 relative shadow-md sm:rounded-lg mt-8 overflow-hidden flex flex-col gap-y-2">
+                <h3 class="text-xl mb-3 font-bold text-gray-900 dark:text-white">
+                    Danh sách sản phẩm
+                </h3>
+
+
+                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+
+                            <th scope="col" class="px-6 py-3">
+                                Sản phẩm
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Màu sắc
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Size
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Giá nhập
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Số lượng nhập
+                            </th>
+                            <th scope="col" class="px-6 py-3">
+                                Thành tiền
+                            </th>
+
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <template x-for="(item,index) in items" :key="index">
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <th scope="row"
+                                    class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+
+                                >
+                                    <div class="flex gap-x-3 items-center   ">
+                                        <img :src="item.productOption.product.displayImage"
+                                             class="w-20 aspect-[3/4]  object-cover" alt="">
+                                        <span x-text="item.productOption.product.name"></span>
+                                    </div>
+                                </th>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.productOption.color.name">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.productOption.size">
+                                </td>
+                                <td class="px-6  text-black font-semibold py-4" x-text="VND.format(item.price)">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4" x-text="item.quantity">
+                                </td>
+                                <td class="px-6 text-black font-semibold py-4"
+                                    x-text="VND.format(item.price*item.quantity)">
+                                </td>
+
+                            </tr>
+
+                        </template>
+                        <!--                        calculate total-->
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <td colspan="5"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                Tổng tiền
+                            </td>
+                            <td colspan="2"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                <span x-text="VND.format(items.reduce((a,b)=>a+b.price*b.quantity,0))"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+
+
+    </section>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        layout:decorate="layout"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>
+        Chi tiết đơn hàng
+    </title>
+</head>
+<body>
+<div
+        layout:fragment="content"
+        class="max-w-screen-xl py-10 px-3 mx-auto"
+>
+    <div class="flex flex-col gap-y-2 shadow-md"
+    >
+        <div class="w-full bg-gray-100 flex justify-between p-4 items-center rounded-md">
+            <div class="ml-6">
+                <ul class="w-full list-none flex gap-x-4 items-start">
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Ngày đặt hàng</div>
+                        <div class="">
+                                            <span class="text-sm"
+                                                  th:text="${@clientUtil.formatDateTime(order.getCreatedDate())}"> </span>
+                        </div>
+                    </li>
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Mã đơn hàng</div>
+                        <div class="font-normal flex">
+                                            <span class="text-sm whitespace-pre-wrap max-w-[200px]"
+                                                  th:text="${order.orderId}"> </span>
+                        </div>
+                    </li>
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Tổng tiền</div>
+                        <div
+                                class="font-extrabold text-base"
+                                th:text="${@clientUtil.toVietnameseCurrency(order.getTotalAmount())}"
+                        ></div>
+                    </li>
+
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Trạng thái đơn hàng</div>
+                        <div class="w-full flex justify-center items-center">
+                            <th:block
+                                    th:replace="~{components/StatusBadge :: orderStatusBadge(${order.getStatus().name()})}"
+                            ></th:block>
+                        </div>
+                    </li>
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Phương thức thanh toán</div>
+                        <div
+                                class="w-full font-normal flex justify-center items-center"
+                                th:text="${@clientUtil.toReadableString(order.getPaymentMethod())}"
+                        ></div>
+                    </li>
+                    <li class="text-base font-extrabold">
+                        <div class="mb-2">Trạng thái thanh toán</div>
+                        <div class="w-full flex justify-center items-center">
+                            <th:block th:if="${order.getLatestPayment() != null}">
+                                <th:block
+
+                                        th:replace="~{components/StatusBadge :: paymentStatusBadge(${order.getLatestPayment().getStatus().name()})}"
+                                ></th:block>
+                            </th:block>
+
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- order details -->
+
+        <div class="p-3 rounded-md">
+            <table class="w-full">
+                <thead class="min-w-full h-10 divide-y divide-gray-200 border-b-2 border-opacity-10 py-10">
+                <tr class="">
+                    <th class="text-lg text-black text-opacity-60 text-left h-full">Sản phẩm</th>
+                    <th class="text-lg text-black text-opacity-60 text-left">Giá</th>
+                    <th class="text-lg text-black text-opacity-60 text-left">Số lượng</th>
+
+                </tr>
+                </thead>
+                <tbody class="w-full">
+                <th:block th:each="item : ${order.getOrderItems()}">
+                    <tr class="w-full h-40 border-b-2 border-opacity-10">
+                        <td class="py-2 h-full flex items-center gap-x-2">
+                            <img
+                                    class="w-100 items-center h-full"
+                                    th:src="${item.getProductOption().getProduct().getDisplayImage()}"
+                                    alt=""
+                            />
+                            <div class="flex flex-col grow">
+                                <a
+                                        th:href="@{/product/{productId}(productId=${item.getProductOption().getProduct().getProductId()})}"
+                                        class="font-extrabold text-xl hover:text-blue-700 hover:underline"
+                                        th:text="${item.getProductOption().getProduct().getName()}"
+                                ></a>
+                                <div>
+                                    <span class="font-semibold text-sm"> Màu sắc: </span>
+                                    <span class="text-sm"
+                                          th:text="${item.getProductOption().getColor().getName()}"></span>
+                                </div>
+                                <div>
+                                    <span class="font-semibold text-sm"> Kích cỡ: </span>
+                                    <span class="text-sm"
+                                          th:text="${item.getProductOption().getSize()}"></span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span
+                                    class="flex font-semibold text-lg"
+                                    th:text="${@clientUtil.toVietnameseCurrency(item.getProductOption().getProduct().getFinalPrice())}"
+                            ></span>
+                        </td>
+
+                        <td>
+                                            <span class="flex font-semibold text-lg"
+                                                  th:text="${item.getQuantity()}"> </span>
+                        </td>
+                    </tr>
+                </th:block>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

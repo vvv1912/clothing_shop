@@ -1,0 +1,243 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const orderId = /*[[${order.orderId}]]*/ "2";
+        const orderStatus = /*[[${order.status}]]*/ "2";
+        const paymentStatus = /*[[${order.latestPayment.status}]]*/ "2";
+        const paymentId = /*[[${order.latestPayment.paymentId}]]*/ "2";
+        /*]]>*/
+    </script>
+    <section
+            x-data="{
+                isUpdating: false,
+                saveChange: async function () {
+                this.isUpdating = true;
+                    const newOrderStatus = document.getElementById('orderStatus').value;
+                    const newPaymentStatus = document.getElementById('paymentStatus').value;
+                    const listPromise = [];
+                   if(newOrderStatus !== orderStatus){
+                        listPromise.push( window.apiClient.updateOrderStatus({
+                    orderId: orderId,
+                     status: newOrderStatus
+                    }));
+                   }
+                     if(newPaymentStatus !== paymentStatus){
+                            listPromise.push( window.apiClient.updatePaymentStatus({
+                        status: newPaymentStatus,
+                        paymentId: paymentId
+                      }));
+                     }
+                     try {
+                        await Promise.all(listPromise);
+                        $store.toast.add('success', 'Thành công', 'Cập nhật thành công');
+                     } catch (e) {
+                        $store.toast.add('error', 'Thất bại', 'Cập nhật thất bại');
+                        console.log({e});
+                     }finally {
+                        this.isUpdating = false;
+                     }
+}
+
+            }"
+            class="bg-gray-50 p-3 sm:p-5 antialiased"
+    >
+        <div class="flex justify-between">
+            <h2 class="font-bold text-2xl mb-4">Chi tiết đơn hàng</h2>
+            <button
+                    x-on:click="saveChange()"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 focus:outline-none"
+            >
+                Lưu thay đổi
+            </button>
+        </div>
+
+        <div class="mx-auto max-w-screen-2xl bg-white rounded-md shadow-lg px-2 py-4 lg:px-8">
+            <div class="flex gap-x-6 mb-2 items-center">
+                <div>
+                    <span class="font-semibold">Mã đơn hàng: </span>
+                    <span class="text-gray-700 italic" th:text="${order.orderId}"> </span>
+                </div>
+                <div>
+                    <span class="font-semibold">Ngày đặt hàng: </span>
+                    <span class="text-gray-700 italic"
+                          th:text="${@clientUtil.formatDateTime(order.createdDate)}"> </span>
+                </div>
+                <div class="flex gap-x-2 items-center">
+                    <label for="orderStatus" class="font-semibold"> Trạng thái đơn hàng: </label>
+                    <select
+                            id="orderStatus"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5"
+                    >
+                        <th:block th:each="status : ${@clientUtil.orderStatuses()}">
+                            <option
+                                    th:value="${status}"
+                                    th:text="${@clientUtil.toReadableString(status)}"
+                                    th:selected="${order.status == status}"
+                            ></option>
+                        </th:block>
+                    </select>
+                </div>
+            </div>
+            <div th:if="${order.getStatus().name() =='CANCELLED'}">
+                <div class="flex gap-x-6 mb-4 items-center">
+                    <div>
+                        <span class="font-semibold">Lý do hủy: </span>
+                        <span class="text-gray-700 italic" th:text="${order.getCancelReason()}"> </span>
+                        <span
+                                th:unless="${order.getCancelReason()}"
+                                class="text-gray-700 italic">
+                            Không có
+                        </span>
+
+                    </div>
+                </div>
+            </div>
+            <h2 class="font-bold text-xl ml-3 mb-4">Danh sách sản phẩm</h2>
+            <div class="flex flex-col gap-y-3 ml-3">
+                <th:block th:each="item : ${order.orderItems}">
+                    <div class="flex gap-x-2">
+                        <img
+                                th:src="${item.productOption.product.displayImage}"
+                                class="w-28 aspect-[3/4] object-cover rounded-lg"
+                        />
+                        <div class="flex flex-col gap-y-2">
+                            <div class="font-semibold text-gray-700" th:text="${item.productOption.product.name}"></div>
+                            <div class="text-gray-500 py-2 flex gap-x-2">
+                                <div class="font-semibold text-gray-700">Loại:</div>
+                                <span th:text="${item.productOption.color.name}"></span><span>, </span>
+                                <span th:text="${item.productOption.size}"></span>
+                            </div>
+                            <div class="flex gap-x-2">
+                                <div class="font-semibold text-gray-700">Giá:</div>
+                                <div
+                                        class="text-gray-500"
+                                        th:text="${@clientUtil.toVietnameseCurrency(item.productOption.getFinalPrice())}"
+                                ></div>
+                            </div>
+                            <div class="flex gap-x-2">
+                                <div class="font-semibold text-gray-700">Số lượng:</div>
+                                <div class="text-gray-500" th:text="${item.quantity}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </th:block>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 grid-cols-1 mt-10 gap-x-4">
+            <div class=" ">
+                <div class="bg-white rounded-md shadow-lg px-2 py-4 lg:px-8">
+                    <h2 class="font-bold text-xl ml-3 mb-4">Thông tin giao hàng</h2>
+                    <div class="flex flex-col gap-y-2 ml-3">
+                        <div class="mb-3">
+                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Họ và tên người nhận
+                            </label>
+                            <input
+                                    type="text"
+                                    id="name"
+                                    readonly
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                                    th:value="${order.customerName}"
+                            />
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Số điện thoại
+                            </label>
+                            <input
+                                    type="text"
+                                    id="phone"
+                                    readonly
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                                    th:value="${order.phoneNumber}"
+                            />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="block mb-2 text-sm font-medium text-gray-900"> Địa chỉ </label>
+                            <input
+                                    type="text"
+                                    id="address"
+                                    readonly
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+                                    th:value="${order.address}"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="bg-white rounded-md shadow-lg px-2 py-4 lg:px-8">
+                    <h2 class="font-bold text-xl mb-4">Thông tin thanh toán</h2>
+                    <div class="flex flex-col gap-2 pb-4 border-b border-b-primary-200">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700">Tổng giá trị đơn hàng:</span>
+                            <span
+                                    class="text-gray-500"
+                                    th:text="${@clientUtil.toVietnameseCurrency(order.getTotalPrice())}"
+                            ></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700">Phí vận chuyển:</span>
+                            <span class="text-gray-500"
+                                  th:text="${@clientUtil.toVietnameseCurrency(order.deliveryFee)}"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700">Giảm giá:</span>
+                            <span
+                                    class="text-gray-500"
+                                    th:text="${'-'+@clientUtil.toVietnameseCurrency(order.getTotalPrice()- (order.totalAmount - order.deliveryFee) )}"
+                            ></span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2 py-4 border-b text-xl border-b-primary-200">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700">Tổng thanh toán:</span>
+                            <span class="text-gray-500"
+                                  th:text="${@clientUtil.toVietnameseCurrency(order.totalAmount)}"></span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2 py-4">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700"> Phương thức thanh toán: </span>
+                            <span class="text-gray-500"
+                                  th:text="${@clientUtil.toReadableString(order.paymentMethod)}"> </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-gray-700"> Trạng thái thanh toán: </span>
+
+                            <select
+                                    id="paymentStatus"
+                                    th:value="${order.latestPayment.status}"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5"
+                            >
+                                <th:block th:each="status : ${@clientUtil.paymentStatuses()}">
+                                    <option
+                                            th:value="${status}"
+                                            th:text="${@clientUtil.toReadableString(status)}"
+                                            th:selected="${order.latestPayment.status == status}"
+                                    ></option>
+                                </th:block>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

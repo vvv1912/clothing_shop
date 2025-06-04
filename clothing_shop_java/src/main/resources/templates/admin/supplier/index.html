@@ -1,0 +1,827 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content"
+>
+    <!-- Start block -->
+    <section
+            class="bg-gray-50 p-1 sm:p-3 antialiased"
+            x-data="{
+    page: null,
+    perPage: 10,
+    data: [],
+    total: 0,
+    totalElement: 0,
+    hasNextPage: true,
+    hasPreviousPage: true,
+    loading : false,
+    keyword: '',
+    selectedId: null,
+    selectedItem: {},
+    getSelectedItems() {
+        return this.data.filter((item) => this.selected.includes(item.supplierId));
+    },
+    }"
+
+            x-init="
+             const urlQuery = new URLSearchParams(window.location.search);
+             const pageQr = urlQuery.get('page');
+                const perPageQr = urlQuery.get('perPage');
+
+                page =Number(pageQr) || 1;
+                perPage = Number(perPageQr) || 10;
+                keyword = urlQuery.get('keyword') || undefined;
+                 function fetchData(p =1,pp=10,kw=undefined) {
+            loading = true;
+             const queryStr= queryString.stringify({
+                page: p,
+                perPage: pp,
+                keyword: kw
+             });
+            axios.get('/api/supplier?'+queryStr).then((response) => {
+                data = [...response.data.data]
+                total = response.data.totalPages;
+                totalElement = response.data.totalElements;
+                hasNextPage = response.data.hasNext;
+                hasPreviousPage = response.data.hasPrevious;
+                loading = false;
+                selectedId = null;
+                selectedItem = {};
+
+            });
+        }
+                fetchData(page, perPage, keyword);
+                $watch('page', (value) => {
+                 const queryStr= queryString.stringify({
+                page: value,
+                perPage: perPage,
+                keyword: keyword
+             });
+                    fetchData(value, perPage, keyword);
+                    window.history.replaceState(null, null, '?'+queryStr);
+                    window.scroll({
+                        top: 0,
+                        left: 0,
+                        behavior: 'smooth'
+                    });
+                });
+                $watch('keyword', (value) => {
+                const queryStr= queryString.stringify({
+                page,
+                perPage,
+                keyword: value
+             });
+                    fetchData(page, perPage, value);
+                    window.history.replaceState(null, null, '?'+queryStr);
+                    window.scroll({
+                        top: 0,
+                        left: 0,
+                        behavior: 'smooth'
+                    });
+                });
+                "
+            @supplier-created.window="data.push($event.detail)"
+            @supplier-updated.window="
+            const el = data.find((item) => item.supplierId === selectedId);
+            if (el) {
+                el.name = $event.detail.name;
+                el.address = $event.detail.address;
+                el.phone = $event.detail.phone;
+                el.email = $event.detail.email;
+                el.description = $event.detail.description;
+            }"
+            @supplier-deleted.window="
+            data = data.filter((item) => item.supplierId != $event.detail);
+            "
+    >
+        <div class="mx-auto max-w-screen-2xl px-4 lg:px-12">
+            <div class="bg-white relative shadow-md sm:rounded-lg overflow-hidden">
+                <div
+                        class="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0 md:space-x-4 p-4"
+                >
+                    <div class="flex-1 flex items-center space-x-2">
+                        <h5>
+                            <span class="text-gray-500"> Tổng số nhà cung cấp :</span>
+                            <span class="" x-text="totalElement"> </span>
+                        </h5>
+                    </div>
+                    <div
+                            class="flex-shrink-0 flex flex-col items-start md:flex-row md:items-center lg:justify-end space-y-3 md:space-y-0 md:space-x-3"
+                    ></div>
+                </div>
+                <div
+                        class="flex flex-col md:flex-row items-stretch md:items-center md:space-x-3 space-y-3 md:space-y-0 justify-between mx-4 py-4 border-t"
+                >
+                    <div class="w-full md:w-1/2">
+                        <form class="flex items-center">
+                            <label for="simple-search" class="sr-only">Tìm kiếm</label>
+                            <div class="relative w-full">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg
+                                            aria-hidden="true"
+                                            class="w-5 h-5 text-gray-500"
+                                            fill="currentColor"
+                                            viewbox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                                fill-rule="evenodd"
+                                                clip-rule="evenodd"
+                                                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                        />
+                                    </svg>
+                                </div>
+                                <input
+                                        type="text"
+                                        id="simple-search"
+                                        placeholder="Tìm nhà cung cấp theo tên, mã, số điện thoại"
+                                        required=""
+                                        @input.debounce.1000ms="keyword = $event.target.value"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2"
+                                />
+                            </div>
+                        </form>
+                    </div>
+                    <div
+                            class="w-full md:w-auto flex flex-col md:flex-row space-y-2 md:space-y-0 items-stretch md:items-center justify-end md:space-x-3 flex-shrink-0"
+                    >
+                        <button
+                                type="button"
+                                id="createButton"
+                                data-modal-toggle="createModal"
+                                class="flex items-center justify-center text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 focus:outline-none"
+                        >
+                            <svg
+                                    class="h-3.5 w-3.5 mr-1.5 -ml-1"
+                                    fill="currentColor"
+                                    viewbox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    aria-hidden="true"
+                            >
+                                <path
+                                        clip-rule="evenodd"
+                                        fill-rule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                />
+                            </svg>
+                            Thêm nhà cung cấp
+                        </button>
+                        <div class="flex items-center space-x-3 w-full md:w-auto"></div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left min-h-full text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="p-4">Mã</th>
+                            <th scope="col" class="p-4">Tên</th>
+                            <th scope="col" class="p-4">
+                                Địa chỉ
+                            </th>
+
+                            <th scope="col" class="p-4">
+                                Số điện thoại
+                            </th>
+                            <th scope="col" class="p-4">
+                                Email
+                            </th>
+                            <th scope="col" class="p-4">
+                                Ghi chú
+                            </th>
+                            <th scope="col" class="p-4">Hành động</th>
+                            <th scope="col"></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr x-show="loading">
+                            <td colspan="7" class="px-4 py-3">
+                                <div role="status" class="flex w-full h-full items-center justify-center">
+                                    <svg
+                                            aria-hidden="true"
+                                            class="w-8 h-8 mr-2 text-gray-200 animate-spin fill-blue-600"
+                                            viewBox="0 0 100 101"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                fill="currentColor"
+                                        />
+                                        <path
+                                                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                fill="currentFill"
+                                        />
+                                    </svg>
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <template x-for="item in data" :key="item.supplierId">
+                            <tr x-show="!loading" class="border-b hover:bg-gray-100">
+                                <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                                    <div class="flex items-center" x-text="item.supplierId"></div>
+                                </td>
+                                <th scope="row" class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                                    <div class="flex items-center mr-3" x-text="item.name"></div>
+                                </th>
+
+                                <td
+                                        class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap"
+                                        x-text="item.address"
+                                ></td>
+                                <td
+                                        class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap"
+                                        x-text="item.phone"
+                                ></td>
+                                <td
+                                        class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap"
+                                        x-text="item.email"
+                                ></td>
+                                <td
+                                        class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap"
+                                        x-text="item.description.length > 30 ? item.description.substring(0,25)+'...' : item.description"
+                                ></td>
+                                <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                                    <div class="flex items-center space-x-4">
+                                        <button
+                                                type="button"
+                                                x-on:click="selectedId = item.supplierId ; selectedItem ={...item}; toggleUpdateModal()"
+                                                class="py-2 px-3 flex items-center text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300"
+                                        >
+                                            <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-4 w-4 mr-2 -ml-0.5"
+                                                    viewbox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    aria-hidden="true"
+                                            >
+                                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
+                                                <path
+                                                        fill-rule="evenodd"
+                                                        d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                                        clip-rule="evenodd"
+                                                />
+                                            </svg>
+                                            Sửa
+                                        </button>
+                                        <button
+                                                type="button"
+                                                x-on:click="selectedId = item.supplierId ;toggleDeleteModal()"
+                                                class="flex items-center text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2 text-center"
+                                        >
+                                            <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-4 w-4 mr-2 -ml-0.5"
+                                                    viewbox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    aria-hidden="true"
+                                            >
+                                                <path
+                                                        fill-rule="evenodd"
+                                                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                                        clip-rule="evenodd"
+                                                />
+                                            </svg>
+                                            Xoá
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        </tbody>
+                    </table>
+                </div>
+                <nav
+                        class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 p-4"
+                        aria-label="Table navigation"
+                >
+              <span>
+                Hiển thị
+                <span class="font-medium" x-text="perPage*page - perPage + 1"></span>
+                -
+                <span class="font-medium" x-text="perPage*page > totalElement ? totalElement : perPage*page"></span>
+                trên
+                <span class="font-medium" x-text="totalElement"></span>
+                kết quả
+              </span>
+                    <ul class="inline-flex items-stretch -space-x-px">
+                        <li>
+                            <button
+                                    class="flex disabled:cursor-not-allowed disabled:bg-gray-100 items-center justify-center h-full py-1.5 px-3 ml-0 text-gray-500 bg-white rounded-l-lg border border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+                                    :disabled="!hasPreviousPage"
+                                    x-on:click="page = page - 1"
+                            >
+                                <span class="sr-only">Previous</span>
+                                <svg
+                                        class="w-5 h-5"
+                                        aria-hidden="true"
+                                        fill="currentColor"
+                                        viewbox="0 0 20 20"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                            fill-rule="evenodd"
+                                            d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                            clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </button>
+                        </li>
+
+                        <li>
+                            <button
+                                    class="flex items-center justify-center text-sm py-2 px-3 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+                                    x-text="page"
+                            ></button>
+                        </li>
+                        <li>
+                            <button
+                                    class="flex items-center disabled:cursor-not-allowed disabled:bg-gray-100 justify-center h-full py-1.5 px-3 leading-tight text-gray-500 bg-white rounded-r-lg border border-gray-300 hover:bg-gray-100 hover:text-gray-700"
+                                    :disabled="!hasNextPage"
+                                    x-on:click="page = page + 1"
+                            >
+                                <span class="sr-only">Next</span>
+                                <svg
+                                        class="w-5 h-5"
+                                        aria-hidden="true"
+                                        fill="currentColor"
+                                        viewbox="0 0 20 20"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                            fill-rule="evenodd"
+                                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                            clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <div
+                id="update-product-modal"
+                tabindex="-1"
+                aria-hidden="true"
+                class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] md:h-full"
+        >
+            <div class="relative p-4 w-full max-w-3xl h-full md:h-auto">
+                <!-- Modal content -->
+                <div class="relative p-4 bg-white rounded-lg shadow sm:p-5">
+                    <!-- Modal header -->
+                    <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5">
+                        <h3 class="text-lg font-semibold text-gray-900">Sửa nhà cung cấp <span
+                                x-text="selectedId||1"></span></h3>
+                        <button
+                                type="button"
+                                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                                x-on:click="toggleUpdateModal()"
+                        >
+                            <svg
+                                    aria-hidden="true"
+                                    class="w-5 h-5"
+                                    fill="currentColor"
+                                    viewbox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"
+                                />
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+                    <!-- Modal body -->
+                    <form
+                            x-data="{
+                errors: {},
+                isCreating: false,
+                }"
+                            x-on:submit="
+                            errors = {};
+                                    const id = $event.target.supplierId.value;
+                                    const name = $event.target.name.value;
+                                    const address = $event.target.address.value;
+                                    const phone = $event.target.phone.value;
+                                    const email = $event.target.email.value;
+                                    const description = $event.target.description.value;
+                                    $event.preventDefault();
+                                    isCreating = true;
+                                    const payload = {
+                                      name,
+                                      phone,
+                                      supplierId: id,
+                                      description,
+                                      address,
+                                      email
+                                    }
+                                    window.apiClient.updateSupplier(id,payload).then((res) =>{
+                                    $dispatch('supplier-updated', payload);
+                                      $store.toast.add('success', 'Thành công', 'Sửa nhà cung cấp thành công');
+                                      toggleUpdateModal();
+                                      errors = {};
+                                    }).
+                                    catch((err) =>{
+                                              errors = err.response.errors||{};
+                                      $store.toast.add('error', 'Lỗi', err.response.error);
+                                    }).
+                                    finally(() =>{
+                                      isCreating = false;
+                                    });
+                            "
+
+                    >
+                        <input hidden="hidden" name="supplierId" x-model="selectedItem.supplierId"/>
+                        <div class="gap-4 mb-4 flex flex-col">
+                            <div>
+                                <label for="name1" class="block mb-2 text-sm font-medium text-gray-900"> Tên nhà cung
+                                    cấp </label>
+                                <input
+                                        type="text"
+                                        name="name"
+                                        id="name1"
+                                        x-bind:value="selectedItem.name"
+
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập tên nhà cung cấp"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.name"></p>
+                            </div>
+                            <div>
+                                <label for="address1" class="block mb-2 text-sm font-medium text-gray-900">Địa
+                                    chỉ</label>
+                                <input
+                                        type="text"
+                                        name="address"
+                                        id="address1"
+                                        x-bind:value="selectedItem.address"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập địa chỉ"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.address"></p>
+                            </div>
+
+                            <div>
+                                <label for="phone1" class="block mb-2 text-sm font-medium text-gray-900">Số điện
+                                    thoại</label>
+                                <input
+                                        type="text"
+                                        name="phone"
+                                        id="phone1"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập số điện thoại"
+                                        x-bind:value="selectedItem.phone"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.phone"></p>
+                            </div>
+                            <div>
+                                <label for="email1" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                                <input
+                                        type="text"
+                                        name="email"
+                                        id="email1"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập số điện thoại"
+                                        x-bind:value="selectedItem.email"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.email"></p>
+                            </div>
+                            <div>
+                                <label for="description1" class="block mb-2 text-sm font-medium text-gray-900">Ghi
+                                    chú</label>
+                                <textarea
+                                        name="description"
+                                        id="description1"
+                                        rows="3"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập ghi chú"
+                                        x-bind:value="selectedItem.description"
+                                        required=""
+                                ></textarea>
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.description"></p>
+                            </div>
+
+                            <div class="items-center justify-end space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
+                                <button
+                                        type="submit"
+                                        class="w-full sm:w-auto justify-center text-white inline-flex bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                                >
+                                    Sửa nhà cung cấp
+                                </button>
+
+                                <button
+                                        x-on:click="toggleUpdateModal()  ;errors = {}"
+                                        type="reset"
+                                        class="w-full justify-center sm:w-auto text-gray-500 inline-flex items-center bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
+                                >
+                                    <svg
+                                            class="mr-1 -ml-1 w-5 h-5"
+                                            fill="currentColor"
+                                            viewbox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                                fill-rule="evenodd"
+                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div
+                id="createModal"
+                tabindex="-1"
+                aria-hidden="true"
+                class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] md:h-full"
+        >
+            <div class="relative p-4 w-full max-w-3xl h-full md:h-auto">
+                <!-- Modal content -->
+                <div class="relative p-4 bg-white rounded-lg shadow sm:p-5">
+                    <!-- Modal header -->
+                    <div class="flex justify-between items-center pb-4 mb-4 rounded-t border-b sm:mb-5">
+                        <h3 class="text-lg font-semibold text-gray-900">Thêm nhà cung cấp</h3>
+                        <button
+                                type="button"
+                                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                                data-modal-toggle="createModal"
+                        >
+                            <svg
+                                    aria-hidden="true"
+                                    class="w-5 h-5"
+                                    fill="currentColor"
+                                    viewbox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"
+                                />
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+                    <!-- Modal body -->
+                    <form
+                            x-data="{
+                errors: {},
+                isCreating: false,
+                }"
+                            x-on:submit="
+                            errors = {};
+                                    const name = $event.target.name.value;
+                                    const address = $event.target.address.value;
+                                    const phone = $event.target.phone.value;
+                                    const email = $event.target.email.value;
+                                    const description = $event.target.description.value;
+                                    $event.preventDefault();
+                                    isCreating = true;
+                                    const payload = {
+                                      name,
+                                      phone,
+                                      description,
+                                      address,
+                                      email
+                                    }
+                                    window.apiClient.createSupplier(payload).then((res) =>{
+                                    $dispatch('supplier-created',{...payload, supplierId: res.data});
+                                      $store.toast.add('success', 'Thành công', 'Thêm nhà cung cấp thành công');
+                                        document.getElementById('cancelCreateButton').click();
+                                    }).
+                                    catch((err) =>{
+                                    console.log(err);
+                                        errors = err.response.errors||{};
+                                      $store.toast.add('error', 'Lỗi', err.response.error);
+                                    }).
+                                    finally(() =>{
+
+                                      isCreating = false;
+                                    });
+                        "
+                            method="post"
+                    >
+                        <div class="gap-4 mb-4 flex flex-col">
+                            <div>
+                                <label for="name" class="block mb-2 text-sm font-medium text-gray-900"> Tên nhà cung
+                                    cấp </label>
+                                <input
+                                        type="text"
+                                        name="name"
+                                        id="name"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập tên nhà cung cấp"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.name"></p>
+                            </div>
+                            <div>
+                                <label for="address" class="block mb-2 text-sm font-medium text-gray-900">Địa
+                                    chỉ</label>
+                                <input
+                                        type="text"
+                                        name="address"
+                                        id="address"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập địa chỉ"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.address"></p>
+                            </div>
+
+                            <div>
+                                <label for="phone" class="block mb-2 text-sm font-medium text-gray-900">Số điện
+                                    thoại</label>
+                                <input
+                                        type="text"
+                                        name="phone"
+                                        id="phone"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập số điện thoại"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.phone"></p>
+                            </div>
+                            <div>
+                                <label for="email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                                <input
+                                        type="text"
+                                        name="email"
+                                        id="email"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập số điện thoại"
+                                        required=""
+                                />
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.email"></p>
+                            </div>
+                            <div>
+                                <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Ghi
+                                    chú</label>
+                                <textarea
+                                        name="description"
+                                        id="description"
+                                        rows="2"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5"
+                                        placeholder="Nhập ghi chú"
+                                        required=""
+                                ></textarea>
+                                <p class="mt-2 text-sm text-red-600" x-text="errors.description"></p>
+                            </div>
+                            <div class="items-center justify-end space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
+                                <button
+                                        type="submit"
+                                        :disabled="isCreating"
+                                        class="w-full sm:w-auto justify-center text-white inline-flex bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                                >
+                                   Thêm nhà cung cấp
+                                </button>
+
+                                <button
+                                        data-modal-toggle="createModal"
+                                        type="reset"
+                                        id="cancelCreateButton"
+                                        :disabled="isCreating"
+                                        @click="errors = {}"
+                                        class="w-full justify-center sm:w-auto text-gray-500 inline-flex items-center bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10"
+                                >
+                                    <svg
+                                            class="mr-1 -ml-1 w-5 h-5"
+                                            fill="currentColor"
+                                            viewbox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                                fill-rule="evenodd"
+                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    Hủy
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div
+                id="delete-modal"
+                tabindex="-1"
+                aria-hidden="true"
+                class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full"
+        >
+            <div class="relative p-4 w-full max-w-md max-h-full">
+                <!-- Modal content -->
+                <div class="relative p-4 text-center bg-white rounded-lg shadow sm:p-5">
+                    <button
+                            type="button"
+                            class="text-gray-400 absolute top-2.5 right-2.5 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                            x-on:click="toggleDeleteModal()"
+                    >
+                        <svg
+                                aria-hidden="true"
+                                class="w-5 h-5"
+                                fill="currentColor"
+                                viewbox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                    fill-rule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clip-rule="evenodd"
+                            />
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                    <svg
+                            class="text-gray-400 w-11 h-11 mb-3.5 mx-auto"
+                            aria-hidden="true"
+                            fill="currentColor"
+                            viewbox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                                fill-rule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd"
+                        />
+                    </svg>
+                    <p class="mb-4 text-gray-500">
+                        Bạn có chắc chắn muốn xoá nhà cung cấp với id <span class="font-bold"
+                                                                            x-text="selectedId"></span>
+                        không?
+                    </p>
+                    <form
+                            class="flex justify-center items-center space-x-4"
+                            x-on:submit="
+                        $event.preventDefault();
+                        window.apiClient.deleteSupplier($event.target.supplierId.value)
+                        .then((response) => {
+                                $store.toast.add('success', 'Thành công','Xoá nhà cung cấp thành công');
+                                    toggleDeleteModal();
+
+                                $dispatch('supplier-deleted', $event.target.supplierId.value);
+                        }).catch((error) => {
+                                $store.toast.add('error', 'Lỗi',error.response.error);
+                        });
+                    "
+                    >
+                        <input type="hidden" name="supplierId" x-model="selectedId"/>
+                        <button
+                                x-on:click="toggleDeleteModal()"
+                                type="button"
+                                class="py-2 px-3 text-sm font-medium text-gray-500 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-300 hover:text-gray-900 focus:z-10"
+                        >
+                            Không, hủy bỏ
+                        </button>
+                        <button
+                                type="submit"
+                                class="py-2 px-3 text-sm font-medium text-center text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300"
+                        >
+                            Tôi chắc chắn
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- End block -->
+    <script>
+        const updateModalEl = document.getElementById("update-product-modal");
+        const updateModal = new Modal(updateModalEl);
+        const deleteModalEl = document.getElementById("delete-modal");
+        const deleteModal = new Modal(deleteModalEl);
+
+        function toggleUpdateModal() {
+            updateModal.toggle();
+        }
+
+        function toggleDeleteModal() {
+            deleteModal.toggle();
+        }
+    </script>
+</div>
+</body>
+</html>

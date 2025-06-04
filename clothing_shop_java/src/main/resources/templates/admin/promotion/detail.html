@@ -1,0 +1,293 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="admin/layout"
+>
+<head>
+    <meta charset="UTF-8" />
+    <title>Home</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const promotionModel = /*[[${promotion}]]*/  {};
+        /*]]>*/
+    </script>
+    <section
+            class="bg-gray-50 p-3 sm:p-5 antialiased"
+    x-data="{
+        promotion: {...promotionModel},
+        errors: {},
+        isProcessing: false,
+    }"
+            x-init="
+              setTimeout(()=>{
+              const dateStart = new Date(promotion.startDate);
+const dateEnd = new Date(promotion.endDate);
+const startDate = dateStart.getDate() + '/' + (dateStart.getMonth() + 1) + '/' + dateStart.getFullYear();
+const endDate = dateEnd.getDate() + '/' + (dateEnd.getMonth() + 1) + '/' + dateEnd.getFullYear();
+document.getElementById('date-start').value = startDate;
+document.getElementById('date-end').value = endDate;
+              }, 1000)
+        "
+    >
+        <div class="flex justify-between">
+            <h2 class="font-bold text-2xl mb-4">
+                Mã khuyến mãi: <span x-text="promotion.code"></span>
+            </h2>
+            <button
+                    type="submit"
+                    data-modal-target="popup-modal" data-modal-toggle="popup-modal"
+                    class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 focus:outline-none"
+            >
+                Xóa
+            </button>
+            <div id="popup-modal" tabindex="-1" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+                <div class="relative p-4 w-full max-w-md max-h-full">
+                    <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                        <button type="button" class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="popup-modal">
+                            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                        <div class="p-4 md:p-5 text-center">
+                            <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                            </svg>
+                            <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+                                Bạn có chắc chắn muốn xóa khuyến mãi này?
+                            </h3>
+                            <button
+                                    @click="
+                                    isProcessing = true;
+                                    window.apiClient.tryDeletePromotion(promotion.promotionId).then(res => {
+                                        isProcessing = false;
+                                        $store.toast.add('success', 'Thành công', 'Xóa thành công');
+                                        setTimeout(() => {
+                                            window.location.href = '/admin/promotion';
+                                        }, 1000)
+                                    }).catch(err => {
+                                        isProcessing = false;
+                                        $store.toast.add('error', 'Lỗi', err.response.error);
+                                    })
+                                    "
+                                    data-modal-hide="popup-modal" type="button" class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center me-2">
+                                Vâng, xóa
+                            </button>
+                            <button data-modal-hide="popup-modal" type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                                Không, hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mx-auto max-w-screen-2xl bg-white rounded-md shadow-lg px-2 py-4 lg:px-8">
+            <form class="w-[80%] mx-auto"
+            x-on:submit.prevent="
+                    errors = {};
+                    isProcessing = true;
+                    const fromDateStr = document.getElementById('date-start').value;
+                    const toDateStr = document.getElementById('date-end').value;
+                    const fromDate = fromDateStr && new Date(fromDateStr.split('/')[2], fromDateStr.split('/')[1] - 1, fromDateStr.split('/')[0]);
+                    const toDate = fromDateStr && new Date(toDateStr.split('/')[2], toDateStr.split('/')[1] - 1, toDateStr.split('/')[0]);
+                    if (!fromDateStr || !toDateStr) {
+                        errors.startDate = 'Vui lòng chọn ngày bắt đầu và kết thúc';
+                        isProcessing = false;
+                        return;
+                    }
+                    if (fromDate > toDate) {
+                        errors.startDate = 'Ngày bắt đầu phải nhỏ hơn ngày kết thúc';
+                        isProcessing = false;
+                        return;
+                    }
+                      if(promotion.type === 'PERCENTAGE' && promotion.discount > 100) {
+                        errors.discount = 'phần trăm giảm giá không được lớn hơn 100';
+                        isProcessing = false;
+                        return;
+                    }
+                    promotion.startDate = fromDate;
+                    promotion.endDate = toDate;
+                     promotion.active  = document.getElementById('active').checked;
+
+                    window.apiClient.updatePromotion({
+                        type: promotion.type,
+                        promotionId: promotion.promotionId,
+                        name: promotion.name,
+                        code: promotion.code,
+                        active: promotion.active,
+                        description: promotion.description,
+                        discount: promotion.discount,
+                        endDate: promotion.endDate.getTime(),
+                        maxValue: promotion.type === 'PERCENTAGE' ? promotion.maxValue : 0,
+                        startDate: promotion.startDate.getTime(),
+                        stock: promotion.stock || 0,
+                        minOrderAmount: promotion.minOrderAmount || 0,
+                    }).then(res => {
+                        isProcessing = false;
+                        $store.toast.add('success', 'Thành công', 'Cập nhật thành công');
+                    }).catch(err => {
+                        isProcessing = false;
+                        errors = err.response.errors;
+                        $store.toast.add('error', 'Lỗi', err.response.error);
+                    })
+
+            "
+
+            >
+
+                <div >
+                    <label for="promotionId" class="block mb-2 text-sm font-medium text-gray-900">
+                        Id khuyến mãi
+                    </label>
+                    <input required disabled readonly type="text" id="promotionId" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="" x-model="promotion.promotionId">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.promotionId">
+                    </p>
+                </div>
+
+                <div class="mt-4">
+                    <label for="code" class="block mb-2 text-sm font-medium text-gray-900">
+                        Mã khuyến mãi
+                    </label>
+                    <input required type="text" id="code" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="code" x-model="promotion.code">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.code">
+                    </p>
+                </div>
+                <div class="mt-4">
+                    <label for="name" class="block mb-2 text-sm font-medium text-gray-900">
+                        Tên khuyến mãi
+                    </label>
+                    <input required type="text" id="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="name" x-model="promotion.name">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.name">
+                    </p>
+                </div>
+                <div class="mt-4">
+                    <label for="description" class="block mb-2 text-sm font-medium text-gray-900">
+                        Mô tả
+                    </label>
+                    <input type="text" id="description" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="description" x-model="promotion.description">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.description">
+                    </p>
+                </div>
+                <div class="mt-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">
+                        Loại khuyến mãi
+                    </label>
+                    <div class="flex items-center ml-4 gap-x-4">
+                        <div class="flex items-center">
+                            <input id="default-radio-1"
+                                   :checked="promotion.type === 'PERCENTAGE'"
+                                   @change="promotion.type = 'PERCENTAGE'"
+                                   type="radio" value="" name="default-radio" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="default-radio-1" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Giảm theo phần trăm
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="default-radio-2"
+                                   @change="promotion.type = 'FIXED_AMOUNT'"
+                                   :checked="promotion.type === 'FIXED_AMOUNT'"
+                                   type="radio" value="" name="default-radio" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="default-radio-2" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                Giảm theo tiền
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label  for="discount" class="block mb-2 text-sm font-medium text-gray-900">
+                        Giảm giá
+                        <span x-show="promotion.type === 'PERCENTAGE'">(%)</span>
+                        <span x-show="promotion.type === 'FIXED_AMOUNT'">(VNĐ)</span>
+                    </label>
+                    <input required type="number" id="discount" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="discount" x-model="promotion.discount">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.discount">
+                    </p>
+                </div>
+
+                <div class="mt-4">
+                    <label for="minOrderAmount" class="block mb-2 text-sm font-medium text-gray-900">
+                        Giá trị đơn tối thiểu
+                    </label>
+                    <input type="number" id="minOrderAmount" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="minOrderAmount" x-model="promotion.minOrderAmount">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.minOrderAmount">
+                    </p>
+                </div>
+                <div class="mt-4" x-show="promotion.type === 'PERCENTAGE'">
+                    <label for="maxValue" class="block mb-2 text-sm font-medium text-gray-900">
+                        Giá trị tối đa
+                    </label>
+                    <input type="number" id="maxValue" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="maxValue" x-model="promotion.maxValue">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.maxValue">
+                    </p>
+                </div>
+                <div class="mt-4">
+                    <label  class="block mb-2 text-sm font-medium text-gray-900">
+                        Khoảng thời gian áp dụng
+                    </label>
+                    <div date-rangepicker datepicker-format="dd/mm/yyyy"
+                         class="flex items-center datepicker w-full">
+                        <div class="relative">
+                            <input
+                                    name="start"
+                                    datepicker-format="dd/mm/yyyy"
+                                    type="text"
+                                    id="date-start"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 "
+                                    placeholder="Từ ngày"
+                            />
+                        </div>
+                        <span class="mx-4 text-gray-500">đến</span>
+                        <div class="relative">
+                            <input
+                                    name="end"
+                                    datepicker-format="dd/mm/yyyy"
+                                    type="text"
+                                    id="date-end"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 "
+                                    placeholder="Đến ngày"
+                            />
+                        </div>
+                    </div>
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.startDate">
+                    </p>
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.endDate">
+                    </p>
+                </div>
+
+                <div class="mt-4 flex gap-x-2">
+                    <input type="checkbox" id="active" class="bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" placeholder="active" :checked="promotion.active">
+
+                    <label for="active" class="block mb-2 text-sm font-medium text-gray-900">
+                        Kích hoạt
+                    </label>
+                </div>
+                <div class="mt-4">
+                    <label for="stock" class="block mb-2 text-sm font-medium text-gray-900">
+                        Số lượt sử dụng
+                    </label>
+                    <input required type="number" id="stock" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" placeholder="stock" x-model="promotion.stock">
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-500" x-text="errors.stock">
+                    </p>
+                </div>
+
+               <div class="flex justify-end">
+
+                   <button
+                            type="submit"
+                            :disabled="isProcessing"
+                           class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 focus:outline-none"
+                   >
+                       Lưu thay đổi
+                   </button>
+               </div>
+            </form>
+        </div>
+    </section>
+</div>
+</body>
+</html>

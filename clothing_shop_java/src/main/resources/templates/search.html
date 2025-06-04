@@ -1,0 +1,825 @@
+<!DOCTYPE html SYSTEM "http://www.thymeleaf.org/dtd/xhtml1-strict-thymeleaf-spring4-4.dtd">
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        layout:decorate="layout"
+        xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Cửa hàng bán quần áo</title>
+</head>
+
+<body>
+<div layout:fragment="content" class="max-w-screen-xl mx-auto" th:with="clientUtil=${@clientUtil}"
+
+     x-data="
+    {
+    query:{
+    categoryIds: [],
+    forGenders: [],
+    minPrice: 0,
+    maxPrice: undefined,
+    colorIds: [],
+    sizes: [],
+     page: 1,
+     pageSize: 18,
+     sortField: 'product.createdDate',
+     sortDir: 'desc',
+     keyword: undefined,
+
+    },
+     data: [],
+        total: 0,
+        totalElement: 0,
+        hasNextPage: true,
+        hasPreviousPage: true,
+        loading: false,
+        fetchData:  function(){
+            this.loading = true;
+            window.apiClient.searchProducts(...Object.values(this.query))
+            .then(res=>{
+                this.data = res.data;
+                this.total = res.totalPages;
+                this.totalElement = res.totalElements;
+                this.hasNextPage = res.hasNext;
+                this.hasPreviousPage = res.hasPrevious;
+                console.log({
+                    total: this.total,
+                    totalElement: this.totalElement,
+                    hasNextPage: this.hasNextPage,
+                    hasPreviousPage: this.hasPreviousPage,
+                });
+
+            })
+            .catch(err=>{
+                $store.toast.add('error','Có lỗi xảy ra', err.response.error);
+                this.resetQuery();
+            })
+            .finally(()=>{
+                this.loading = false;
+            });
+        },
+        resetQuery() {
+            this.query = {
+                categoryIds: [],
+                forGenders: [],
+                minPrice: 0,
+                maxPrice: undefined,
+                colorIds: [],
+                sizes: [],
+                page: 1,
+                pageSize: 18,
+                sortField: 'product.createdDate',
+                sortDir: 'desc',
+                keyword: undefined,
+            };
+            this.fetchData();
+        },
+    }
+"
+     x-init="
+        $watch('query', (query) => {
+                const queryStr= queryString.stringify(query);
+        window.history.pushState(null, null, window.location.pathname + '?' + queryStr);
+         window.scroll({
+                        top: 0,
+                        left: 0,
+                        behavior: 'smooth'
+                    });
+        }, {deep: true});
+        $watch('query.page', (page) => {
+                fetchData();
+        });
+        $watch('query.pageSize', (pageSize) => {
+                fetchData();
+        });
+
+"
+>
+    <script th:inline="javascript">
+        const categories = /*[[${categories}]]*/ [];
+        const colors = /*[[${colors}]]*/ [];
+        const sizes = /*[[${sizes}]]*/ [];
+    </script>
+
+    <div class="index bar">
+        <nav class="flex ml-1 mt-3" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li class="inline-flex items-center">
+                    <a
+                            href="#"
+                            class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+                    >
+                        <svg
+                                class="w-3 h-3 mr-2.5"
+                                aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                        >
+                            <path
+                                    d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"
+                            />
+                        </svg>
+                        Trang chủ
+                    </a>
+                </li>
+
+                <li>
+                    <div class="flex items-center">
+                        <svg
+                                class="w-3 h-3 text-gray-400 mx-1"
+                                aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 6 10"
+                        >
+                            <path
+                                    stroke="currentColor"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="m1 9 4-4-4-4"
+                            />
+                        </svg>
+                        <a
+                                class="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400"
+
+                        >
+                            Tìm kiếm
+                        </a>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+    </div>
+    <div class="body flex w-pt h-pt"
+         x-data="{
+        selectedCategoryIds: [],
+        selectedColorIds: [],
+        selectedSize:[],
+        priceMin: '',
+        priceMax: '',
+        keywordInput: '',
+        getSelectedCategories() {
+            return categories.filter(category => this.selectedCategoryIds.includes(category.categoryId));
+        },
+        getSelectedColors() {
+            return colors.filter(color => this.selectedColorIds.includes(color.colorId));
+        },
+        getSelectedSizes() {
+            return this.selectedSize;
+        },
+
+        toggleSelectedCategory(categoryId) {
+            if (this.selectedCategoryIds.includes(categoryId)) {
+                this.selectedCategoryIds = this.selectedCategoryIds.filter(id => id !== categoryId);
+            } else {
+                this.selectedCategoryIds.push(categoryId);
+            }
+        },
+        toggleSelectedColor(colorId) {
+            if (this.selectedColorIds.includes(colorId)) {
+                this.selectedColorIds = this.selectedColorIds.filter(id => id !== colorId);
+            } else {
+                this.selectedColorIds.push(colorId);
+            }
+        },
+        toggleSelectedSize(size) {
+            if (this.selectedSize.includes(size)) {
+                this.selectedSize = this.selectedSize.filter(s => s !== size);
+            } else {
+                this.selectedSize.push(size);
+            }
+        },
+        applyfilter() {
+            this.query.keyword = this.keywordInput.trim() || undefined;
+            this.query.categoryIds = this.selectedCategoryIds;
+            this.query.colorIds = this.selectedColorIds;
+            this.query.sizes = this.selectedSize;
+            this.query.minPrice = Number(this.priceMin) || undefined;
+            this.query.maxPrice = Number(this.priceMax) || undefined;
+            this.query.forGenders =[];
+            document.querySelectorAll('.genderCheckBox').forEach(checkbox => {
+            console.log({
+                value: checkbox.value,
+                checked: checkbox.checked,
+
+            });
+                if (checkbox.checked) {
+                    this.query.forGenders.push(checkbox.value);
+                }
+            });
+            console.log(this.query);
+            fetchData();
+        },
+    }"
+         x-init="
+  setTimeout(()=>{
+   const queryParams = queryString.parse(window.location.search);
+        if (queryParams.categoryIds) {
+            if (Array.isArray(queryParams.categoryIds)) {
+           selectedCategoryIds = queryParams.categoryIds.map(Number)|| [];
+            } else {
+           selectedCategoryIds = [Number(queryParams.categoryIds)]|| [];
+            }
+        }
+        if (queryParams.colorIds) {
+            if (Array.isArray(queryParams.colorIds)) {
+               selectedColorIds = queryParams.colorIds.map(Number)|| [];
+            } else {
+                selectedColorIds = [Number(queryParams.colorIds)]|| [];
+            }
+        }
+        if (queryParams.sizes) {
+            if (Array.isArray(queryParams.sizes)) {
+               selectedSize = queryParams.sizes.map(Number)|| [];
+            } else {
+                selectedSize= [Number(queryParams.sizes)]|| [];
+            }
+        }
+        if (queryParams.forGenders) {
+        let temp;
+            if (Array.isArray(queryParams.forGenders)) {
+           temp = queryParams.forGenders|| [];
+            } else {
+               temp = [queryParams.forGenders]|| [];
+            }
+              document.querySelectorAll('.genderCheckBox').forEach(checkbox => {
+                if (temp.includes(checkbox.value)||temp.length===0) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+        if (queryParams.minPrice) {
+            priceMin = Number(queryParams.minPrice)|| undefined;
+        }
+        if (queryParams.maxPrice) {
+            priceMax = Number(queryParams.maxPrice) || undefined;
+        }
+         if (queryParams.keyword) {
+            keywordInput = queryParams.keyword;
+        }
+        if (queryParams.page) {
+            query.page = Number(queryParams.page)|| 1;
+        }
+        if (queryParams.pageSize) {
+            query.pageSize = Number(queryParams.pageSize) || 18;
+        }
+        if (queryParams.sortField) {
+            query.sortField = queryParams.sortField;
+        }
+        if (queryParams.sortDir) {
+            query.sortDir = queryParams.sortDir;
+        }
+        document.getElementById('sortBy').value = query.sortField + '-' + query.sortDir;
+
+        applyfilter();},500);
+"
+    >
+        <div class="CustomizeProducts  text-gray-500 w-pt20  mt-5">
+
+            <div class=" flex ">
+                <div class="ml-20 pb-5 w-full grow rounded-2xl border-2 border-gray-200">
+                    <div class="CustomizeProducts-head mt-4 ml-4 ">
+                        <ul class="flex">
+                            <p class="font-bold"> Bộ lọc</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                 stroke="currentColor" class="w-6 h-6 ml-auto mr-2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M6 13.5V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 010 3m0-3a1.5 1.5 0 000 3m0 9.75V10.5"/>
+                            </svg>
+                        </ul>
+                    </div>
+                    <div class="ml-4 py-4 border-b">
+
+                        <ul class="flex flex-wrap gap-2">
+                            <template x-for="category in getSelectedCategories()" :key="category.categoryId">
+                                <li
+                                        x-text="category.name"
+                                        @click="toggleSelectedCategory(category.categoryId)"
+                                        class="bg-gray-100 text-gray-800 cursor-pointer text-xs font-medium  px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-400 border border-gray-500">
+                                </li>
+                            </template>
+                            <template x-for="color in getSelectedColors()" :key="color.colorId">
+                                <li
+                                        x-text="color.name"
+                                        @click="toggleSelectedColor(color.colorId)"
+                                        class="bg-gray-100 text-gray-800 cursor-pointer text-xs font-medium  px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-400 border border-gray-500">
+                                </li>
+                            </template>
+                            <template x-for="size in getSelectedSizes()" :key="size">
+                                <li
+                                        x-text="size"
+                                        @click="toggleSelectedSize(size)"
+                                        class="bg-gray-100 text-gray-800 cursor-pointer text-xs font-medium  px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-400 border border-gray-500">
+                                </li>
+                            </template>
+                        </ul>
+
+                        <div>
+                            <ul class="Inputselect flex flex-wrap">
+
+                            </ul>
+                        </div>
+
+
+                    </div>
+                    <div id="accordion-flush" data-accordion="collapse" data-active-classes="bg-white text-gray-900"
+                         class="px-2" data-inactive-classes="text-gray-500 dark:text-gray-400">
+                        <h2 id="accordion-flush-heading-5">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-5" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-5">
+                                <span>
+                                 Từ khóa
+                                </span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-chooseColor mt-4  hidden" id="accordion-flush-body-5"
+                             aria-labelledby="accordion-flush-heading-5">
+                            <div class="relative z-0 w-full mb-5 group">
+                                <input
+                                        x-model="keywordInput"
+                                        type="text" name="keyword" id="keyword"
+                                        class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                                        placeholder=" " required/>
+                                <label for="keyword"
+                                       class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">
+                                    Nhập từ khóa
+                                </label>
+                            </div>
+                        </div>
+                        <h2 id="accordion-flush-heading-2">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-2" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-2">
+                                <span>Khoảng giá</span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-priceChoice py-4 mt-4  hidden" id="accordion-flush-body-2"
+                             aria-labelledby="accordion-flush-heading-2">
+                            <div class="flex items-center py-4 px-2 space-x-3 font-light border-b border-gray-200">
+                                <div class="relative z-0 w-full mb-6 group">
+                                    <input
+                                            type="number"
+                                            name="amount-start"
+                                            id="amount-start"
+                                            class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                                            placeholder=" "
+                                            x-model="priceMin"
+                                            required
+                                    />
+                                    <label
+                                            for="amount-start"
+                                            class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+                                    >Từ
+                                    </label>
+                                </div>
+                                <div class="relative z-0 w-full mb-6 group">
+                                    <input
+                                            type="number"
+                                            name="amount-end"
+                                            id="amount-end"
+                                            class="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+                                            placeholder=" "
+                                            x-model="priceMax"
+                                            required
+                                    />
+                                    <label
+                                            for="amount-end"
+                                            class="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+                                    >Đến</label
+                                    >
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <h2 id="accordion-flush-heading-6">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-6" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-6">
+                                <span>
+                                 Giới tính
+                                </span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-chooseColor mt-4  hidden" id="accordion-flush-body-6"
+                             aria-labelledby="accordion-flush-heading-6">
+                            <div class="flex items-center mb-2">
+                                <input checked id="male-checkbox" type="checkbox"
+                                       :value="ForGenders.FOR_MALE"
+                                       class="w-4 h-4 genderCheckBox text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="male-checkbox"
+                                       class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Cho nam
+                                </label>
+                            </div>
+                            <div class="flex items-center mb-2">
+                                <input checked id="female-checkbox" type="checkbox" :value="ForGenders.FOR_FEMALE"
+                                       class="w-4 h-4 genderCheckBox text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="female-checkbox"
+                                       class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Cho nữ
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input checked id="both-checkbox" type="checkbox" :value="ForGenders.FOR_BOTH"
+                                       class="w-4 h-4 genderCheckBox text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="both-checkbox"
+                                       class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    Cho cả nam và nữ
+                                </label>
+                            </div>
+                        </div>
+                        <h2 id="accordion-flush-heading-1">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-1" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-1">
+                                <span>Danh mục sản phẩm</span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-typeClothes relative mt-4 ml-4  hidden"
+                             id="accordion-flush-body-1"
+                             aria-labelledby="accordion-flush-heading-1">
+                            <button id="dropDownSelectCategoryBtn" data-dropdown-toggle="dropDownSelectCategory"
+                                    data-dropdown-trigger="hover"
+                                    class="text-white bg-primary-700 w-[80%] mx-auto  hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center "
+                                    type="button">
+                                Chọn danh mục
+                                <svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+                                     fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="m1 1 4 4 4-4"/>
+                                </svg>
+                            </button>
+                            <div id="dropDownSelectCategory"
+                                 class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg border shadow-2xl max-h-72  overflow-y-auto w-[80%]">
+                                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200"
+                                    aria-labelledby="dropDownSelectCategoryBtn">
+                                    <template x-for="category in categories" :key="category.categoryId">
+                                        <li>
+                                            <button
+                                                    x-text="category.name"
+                                                    @click="toggleSelectedCategory(category.categoryId)"
+                                                    class="block w-full  px-4 py-2 hover:bg-gray-100  text-start ">
+
+                                            </button>
+                                        </li>
+                                    </template>
+
+                                </ul>
+                            </div>
+                        </div>
+
+                        <h2 id="accordion-flush-heading-3">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-3" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-3">
+                                <span> Màu sắc</span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-chooseColor mt-4  hidden" id="accordion-flush-body-3"
+                             aria-labelledby="accordion-flush-heading-3">
+                            <ul class="listcoler flex flex-wrap">
+                                <template x-for="color in colors" :key="color.colorId">
+                                    <li
+                                            x-bind:value="color.colorId"
+                                            x-text="color.name"
+                                            @click="toggleSelectedColor(color.colorId)"
+                                            class="bg-gray-600 rounded-full text-white flex items-center px-3 py-1 ml-2 mt-2 hover:bg-black">
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                        <h2 id="accordion-flush-heading-4">
+                            <button type="button"
+                                    class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 gap-3"
+                                    data-accordion-target="#accordion-flush-body-4" aria-expanded="true"
+                                    aria-controls="accordion-flush-body-4">
+                                <span>  Kích cỡ</span>
+                                <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                          stroke-width="2" d="M9 5 5 1 1 5"/>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="CustomizeProducts-chooseColor mt-4  hidden" id="accordion-flush-body-4"
+                             aria-labelledby="accordion-flush-heading-4">
+                            <ul class="size flex flex-wrap">
+                                <template x-for="size in sizes" :key="size">
+                                    <li
+                                            x-bind:value="size"
+                                            x-text="size"
+                                            @click="toggleSelectedSize(size)"
+                                            class="bg-gray-600 rounded-full text-white flex items-center px-3 py-1 ml-2 mt-2 hover:bg-black">
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="CustomizeProducts-applyfilter mt-4 ml-4">
+                        <div class="mx-auto w-45">
+                            <button
+                                    @click="applyfilter()"
+                                    class="bg-primary-700 hover:bg-primary-800 text-white px-5 py-3 rounded-full text-center">
+                                Áp dụng lọc
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="listproduct ml-4pt ml-auto mt-5 mr-50 w-60pt">
+            <div class="listproduct-head justify-between flex items-center">
+                <div class="flex flex-col gap-y-1">
+                    <p class=" text-3xl font-bold">
+                        Kết quả tìm kiếm
+                    </p>
+                    <span class=" ml-2 text-sm font-normal text-gray-500">
+                Hiển thị
+                <span class="font-semibold text-gray-900">
+                  <span x-text="(query.page-1)*query.pageSize+1"></span>
+                  -
+                  <span x-text="(query.page-1)*query.pageSize+1+data.length-1"></span>
+                </span>
+
+                trên
+                <span class="font-semibold text-gray-900" x-text="totalElement"></span>
+                kết quả</span>
+
+                </div>
+
+                <div class="flex items-center gap-x-4 text-gray-500 mt-2">
+                    <div class="flex gap-x-2 grow">
+                        <label for="sortBy" class="ml-3">Sắp xếp theo:</label>
+                        <select id="sortBy"
+
+                                x-on:change="
+                                        const value = $event.target.value;
+                                        const sortField = value.split('-')[0];
+                                        const sortDir = value.split('-')[1];
+                                        query.sortField = sortField;
+                                        query.sortDir = sortDir;
+                                        fetchData();
+                                  "
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
+                            <option value="product.discount-desc">
+                               Giảm giá sốc
+                            </option>
+                            <option selected value="product.createdDate-desc">
+                                Mới nhất
+                            </option>
+                            <option value="product.createdDate-asc">
+                                Cũ nhất
+                            </option>
+                            <option value="product.price-asc">
+                                Giá thấp đến cao
+                            </option>
+                            <option value="product.price-desc">
+                                Giá cao đến thấp
+                            </option>
+                            <option value="product.totalSold-desc">
+                                Bán chạy nhất
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="listproduct-list gap-5  mt-6 grid grid-cols-3">
+                <div x-show="loading" class="w-full col-span-4 h-36 flex justify-center items-center">
+                    <div role="status">
+                        <svg aria-hidden="true"
+                             class="inline w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-gray-600 dark:fill-gray-300"
+                             viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                  fill="currentColor"/>
+                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                  fill="currentFill"/>
+                        </svg>
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+                <div x-show="!loading && data.length ===0"
+                     class="w-full col-span-4 h-36 flex justify-center items-center">
+                    <p class="text-gray-500 ">Không có sản phẩm nào</p>
+                </div>
+                <template x-for="product in data" :key="product.productId">
+                    <a
+                            class="flex flex-col  gap-y-1 relative shadow rounded-md hover:shadow-md hover:border border-gray-100"
+                            :href="'/product/'+product.slug"
+                    >
+                        <div class="flex items-center p-2 bg-transparent bg-white rounded-md  absolute top-0 left-0 z-10">
+                            <svg
+                                    class="w-4 h-4 text-yellow-300 mr-1"
+                                    aria-hidden="true"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="currentColor"
+                                    viewBox="0 0 22 20"
+                            >
+                                <path
+                                        d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z"
+                                />
+                            </svg>
+                            <p class="ml-1 text-sm font-bold text-gray-900 dark:text-white"
+                               x-text="parseFloat(product.averageRating).toFixed(1)"
+                            >
+                            </p>
+
+                        </div>
+                        <img
+                                class="w-full relative aspect-[3/4] rounded-md cursor-pointer"
+                                :src="product.displayImage"
+                                :alt="product.name"
+                        />
+                        <div class="flex flex-col gap-y-1 p-4">
+                            <div class="font-semibold text-lg"
+                                 x-text="product.name"
+                            >
+
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="flex gap-1 items-center">
+                                    <div
+                                            class="font-bold"
+                                            x-text="VND.format(product.price)"
+                                            x-bind:class="product.discount > 0 ? ' line-through text-gray-500 text-sm' : ''"
+                                    ></div>
+
+                                    <div
+                                            class="font-bold"
+                                            x-text="VND.format(product.price*(1-product.discount*1.0/100))"
+
+                                            x-show="product.discount > 0"
+                                    ></div>
+                                </div>
+                                <span
+                                        class="bg-red-100 text-red-800 mr-2 px-2.5 py-0.5 rounded font-bold"
+                                        x-text="'-'+product.discount+'%'"
+                                        x-show="product.discount > 0"
+                                ></span>
+                            </div>
+                        </div>
+                    </a>
+
+                </template>
+            </div>
+            <div class="pageTransitionBar">
+                <hr class=" ml-4  mt-8 border-b-1 border-gray-300">
+                <div class="flex mt-5">
+                    <button type="button"
+                            class="border ml-4 border-gray-400 px-1 flex py-1 rounded-lg hover:bg-gray-100"
+                            :disabled="!hasPreviousPage"
+                            @click="query.page = query.page - 1;"
+                            :class="hasPreviousPage ? ' text-gray-900' : ' cursor-not-allowed text-gray-400'"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                             stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+                        </svg>
+                        <span>
+                                    Trang trước
+                                </span>
+
+                    </button>
+                    <div class="number-page ml-auto ">
+                        <ul class="inline-flex -space-x-px text-sm">
+                            <template x-if="total <=5">
+                                <template x-for="i in Array.from({length: total}, (_, i) => i + 1)" :key="i">
+                                    <li>
+                                        <button
+                                                @click="query.page = i; "
+                                                :class="query.page === i ? 'text-blue-600  bg-blue-50' : 'text-gray-500 bg-white'"
+                                                class="flex items-center justify-center px-3 h-8 leading-tight border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                            <span x-text="i"></span>
+                                        </button>
+                                    </li>
+                                </template>
+                            </template>
+                            <li x-show="total > 5 ">
+                                <button
+                                        @click="query.page = 1; "
+                                        :class="query.page === 1 ? 'text-blue-600  bg-blue-50' : 'text-gray-500 bg-white'"
+                                        class="flex items-center justify-center px-3 h-8 leading-tight  border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                    1
+                                </button>
+
+                            </li>
+
+
+
+                            <template x-if="total > 5 && query.page !== total && query.page !== 1">
+                                <li>
+                                    <ul class="inline-flex -space-x-px text-sm">
+                                        <li>
+                                            <button
+                                                    class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                                ...
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                    class="flex text-blue-600  bg-blue-50 items-center justify-center px-3 h-8 leading-tight  border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                                <span x-text="query.page"></span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button
+                                                    class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                                ...
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </template>
+
+                            <template x-if="total > 5 && (query.page === total || query.page === 1)">
+                                <li>
+                                    <button
+                                            class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                        ...
+                                    </button>
+                                </li>
+                            </template>
+
+
+
+
+
+                            <li x-show="total > 5">
+                                <button
+                                        @click="query.page = total; "
+                                        :class="query.page === total ? 'text-blue-600  bg-blue-50' : 'text-gray-500 bg-white'"
+                                        class="flex items-center justify-center px-3 h-8 leading-tight border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                    <span x-text="total"></span>
+                                </button>
+                            </li>
+
+
+                        </ul>
+
+                    </div>
+
+                    <button class="ml-auto mr-2 border-2 border-gray-400 px-2 flex py-1 rounded-lg hover:bg-gray-100"
+                            :disabled="!hasNextPage"
+                            @click="query.page = query.page + 1; "
+                            :class="hasNextPage ? ' text-gray-900' : ' cursor-not-allowed text-gray-400'"
+                    >
+                        <span>Trang tiếp</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                             stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+    <div class="mt-6"></div>
+    <!--    <script src="/js/search.js"></script>-->
+
+</div>
+</body>
+</html>
